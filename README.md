@@ -182,7 +182,7 @@ npm start
 Copier `.env.example` vers `.env`. Ne jamais y mettre de secret réel dans Git.
 
 - `APP_PORT` — port Fastify (défaut `3000`)
-- `APP_HOST` — interface d’écoute (défaut `127.0.0.1` en local). En Docker, Compose force `0.0.0.0` pour que le reverse proxy ou `127.0.0.1:3000` de l’hôte puissent joindre le conteneur.
+- `APP_HOST` — interface d’écoute (défaut `127.0.0.1` en local). En Docker, Compose force `0.0.0.0` pour que Caddy (sur l’hôte) ou `127.0.0.1:3020` puissent joindre le conteneur.
 - `DATABASE_PATH` — chemin SQLite (défaut `./data/energy-tracker.sqlite` ; en Docker `/data/energy-tracker.sqlite`)
 - `AUTH_PASSWORD_HASH` — hash Argon2id du mot de passe unique (obligatoire)
 - `AUTH_SESSION_SECRET` — secret long et aléatoire pour signer le cookie (obligatoire, au moins 32 caractères)
@@ -201,7 +201,7 @@ En production HTTPS derrière reverse proxy : `AUTH_COOKIE_SECURE=true` **et**, 
 
 `npm start` **n’applique pas** les migrations. Les lancer à la main, un seul process à la fois, **après avoir arrêté** le conteneur s’il tourne déjà.
 
-Le fichier Compose publie `127.0.0.1:3000` (stratégie A) : le reverse proxy installé sur l’hôte du VPS peut joindre Fastify sans exposer le port sur Internet. Ne pas publier `3000` sur `0.0.0.0`.
+Le fichier Compose publie `127.0.0.1:3020:3000` (stratégie A) : Fastify écoute **dans** le conteneur sur le port 3000 ; Docker le mappe uniquement sur `127.0.0.1:3020` de l’hôte, pour éviter le conflit avec `mercury-parser` déjà sur le port 3000 du VPS. Caddy, installé sur l’hôte (pas dans Docker), peut joindre Fastify sans exposer le port sur Internet. Ne pas publier `3020` (ni `3000`) sur `0.0.0.0`.
 
 Garde-fous Compose : `init: true`, `no-new-privileges`, `stop_grace_period: 20s`, `pids_limit: 100`, `mem_limit: 512m`. Le système de fichiers du conteneur n’est pas en lecture seule : SQLite (WAL) doit écrire dans `/data`.
 
@@ -217,7 +217,7 @@ docker compose run --rm energy-tracker npm run migrate
 docker compose up -d
 docker compose ps
 docker compose logs -f energy-tracker
-curl -i http://127.0.0.1:3000/health
+curl -i http://127.0.0.1:3020/health
 ```
 
 ### Mise à jour sur le VPS
@@ -236,7 +236,7 @@ docker compose logs --tail=100 energy-tracker
 
 ### Validation après déploiement
 
-- `curl -i http://127.0.0.1:3000/health` et healthcheck Compose (`docker compose ps`)
+- `curl -i http://127.0.0.1:3020/health` et healthcheck Compose (`docker compose ps`)
 - accès HTTPS via le reverse proxy (hors de ce dépôt)
 - page `/login`
 - connexion
@@ -249,7 +249,7 @@ docker compose logs --tail=100 energy-tracker
 Ce projet ne configure pas le reverse proxy, le domaine, le DNS ni TLS.
 
 - HTTPS est obligatoire en production.
-- Le proxy doit transmettre le trafic à Fastify (`127.0.0.1:3000` avec la stratégie A).
+- Le proxy doit transmettre le trafic à Fastify. Pour Caddy sur l’hôte : `reverse_proxy 127.0.0.1:3020`.
 - Le port Fastify ne doit pas être exposé publiquement.
 - Si `TRUST_PROXY=true`, le proxy doit être le **seul** chemin d’accès à Fastify.
 - Le proxy doit transmettre les en-têtes habituels (`Host`, `X-Forwarded-For`, `X-Forwarded-Proto`).
@@ -311,4 +311,4 @@ L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retir
 
 ## État actuel
 
-Jalon 5B : image Docker de production, Compose (port `127.0.0.1:3000`), volume SQLite persistant, migrations manuelles, sauvegarde/restauration documentées. Pas de déploiement VPS, reverse proxy, PWA ni notifications.
+Jalon 5B : image Docker de production, Compose (port hôte `127.0.0.1:3020` → conteneur `3000`), volume SQLite persistant, migrations manuelles, sauvegarde/restauration documentées. Pas de déploiement VPS, reverse proxy, PWA ni notifications.

@@ -47,4 +47,4 @@ docker compose run --rm --no-deps \
 docker compose start energy-tracker
 
 echo "Restauration terminée. Copie de sécurité : backups/${SAFETY_NAME}"
-echo "Vérifier ensuite : curl -i http://127.0.0.1:3000/health puis la page de login."
+echo "Vérifier ensuite : curl -i http://127.0.0.1:3020/health puis la page de login."

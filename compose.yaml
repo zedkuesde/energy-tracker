@@ -17,7 +17,7 @@ services:
     volumes:
       - energy_tracker_data:/data
     ports:
-      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:3020:3000'
     healthcheck:
       test:
         [
