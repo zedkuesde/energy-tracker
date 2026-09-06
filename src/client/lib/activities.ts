@@ -15,3 +15,8 @@ const ACTIVITY_VALUES = new Set<string>(ACTIVITIES.map((item) => item.value));
 export function isActivity(value: string): value is Activity {
   return ACTIVITY_VALUES.has(value);
 }
+
+export function getActivityLabel(activity: Activity): string {
+  const match = ACTIVITIES.find((item) => item.value === activity);
+  return match?.label ?? activity;
+}

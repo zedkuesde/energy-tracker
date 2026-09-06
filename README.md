@@ -58,8 +58,8 @@ npm run dev:server
 Pages frontend :
 
 - `/` — saisie rapide connectée à `POST /api/entries`
-- `/history` — historique (placeholder)
-- `/charts` — graphes (placeholder)
+- `/history` — historique réel (`GET /api/entries`, pagination « Charger plus »)
+- `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours)
 
 API disponible dès le Jalon 2 :
 
@@ -68,6 +68,17 @@ API disponible dès le Jalon 2 :
 - `GET /api/entries?from=&to=&limit=&offset=`
 
 `limit` vaut 50 par défaut et 100 au maximum. Une `limit` supérieure à 100 est refusée (`400`). `offset` doit être un entier ≥ 0. `from` et `to` sont inclusifs.
+
+Les graphes n’utilisent pas de route `/api/stats`. Ils relisent `GET /api/entries` avec `from` / `to`, page par page (`limit=100`), jusqu’à avoir toutes les entrées de la période, une page vide, ou 1 000 entrées. Au-delà, un message indique que la vue ne peut pas charger davantage.
+
+Périodes des graphes (instants UTC inclusifs, fenêtre glissante) :
+
+- `to` = instant actuel ;
+- `from` = instant actuel moins 7, 30 ou 90 × 24 heures.
+
+Les dates affichées passent toujours par `Intl.DateTimeFormat` avec `timeZone: 'Europe/Paris'`. Une chaîne ISO sans fuseau n’est jamais traitée comme une heure locale.
+
+La courbe envie n’apparaît que s’il existe au moins deux entrées de la période avec une valeur `desire`. Les points sans envie restent vides : aucune valeur zéro n’est inventée. Chaque saisie est un point horodaté, sans moyenne journalière.
 
 ## Base SQLite
 
@@ -128,4 +139,4 @@ L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retir
 
 ## État actuel
 
-Jalon 3 : saisie rapide branchée sur `POST /api/entries`. Historique et graphes restent des placeholders. Pas d’authentification, Docker ni PWA.
+Jalon 4 : historique et graphes branchés sur `GET /api/entries`. Pas d’édition ni de suppression, pas d’authentification, Docker ni PWA.

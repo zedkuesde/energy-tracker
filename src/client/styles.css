@@ -472,3 +472,155 @@ textarea:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
+
+.entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.entry-card {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: #fff;
+}
+
+.entry-when {
+  margin: 0 0 0.55rem;
+  font-weight: 650;
+  font-size: 1.02rem;
+}
+
+.entry-scores {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.75rem;
+}
+
+.entry-scores dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.entry-scores dd {
+  margin: 0.1rem 0 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.entry-energy {
+  color: var(--energy);
+}
+
+.entry-fatigue {
+  color: var(--fatigue);
+}
+
+.entry-desire {
+  color: var(--desire);
+}
+
+.entry-activity {
+  margin: 0.65rem 0 0;
+  font-weight: 650;
+}
+
+.entry-context {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+.load-more,
+.status-action {
+  width: 100%;
+  margin-top: 0.85rem;
+}
+
+.chart-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+
+.chart-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.chart-frame {
+  width: 100%;
+  height: 280px;
+  margin-top: 0.35rem;
+}
+
+.chart-legend {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+}
+
+.legend-energy {
+  background: var(--energy);
+}
+
+.legend-fatigue {
+  background: var(--fatigue);
+}
+
+.legend-desire {
+  background: var(--desire);
+}
+
+.chart-tooltip {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: #fff;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.chart-tooltip p {
+  margin: 0.15rem 0 0;
+}
+
+.chart-tooltip-when {
+  margin: 0 0 0.35rem;
+  font-weight: 650;
+}
+
+.empty-state-error {
+  background: var(--fatigue-soft);
+}
+
+.empty-state-loading {
+  background: var(--energy-soft);
+}
