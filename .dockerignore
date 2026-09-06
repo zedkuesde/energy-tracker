@@ -1,0 +1,41 @@
+# Dependencies and build artefacts
+node_modules
+dist
+coverage
+
+# Secrets and local env
+.env
+.env.*
+
+# SQLite data, journals, backups
+data
+backups
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Git and editor
+.git
+.gitignore
+.gitattributes
+.cursor
+.vscode
+.DS_Store
+
+# Logs and local files
+*.log
+*.local
+npm-debug.log*
+
+# Tests are not required in the image
+**/*.test.ts
+**/*.test.tsx
+src/server/test-support.ts
+src/client/test
+
+# Docs not needed to build
+docs
+README.md

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const BODY_LIMIT_BYTES = 16 * 1024;
 const DEFAULT_PORT = 3000;
+const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_DATABASE_PATH = './data/energy-tracker.sqlite';
 const DEFAULT_SESSION_TTL_SECONDS = 1_209_600;
 const MIN_SESSION_SECRET_LENGTH = 32;
@@ -80,11 +81,18 @@ function parsePort(value: string | undefined): number {
   return parsed;
 }
 
+function parseHost(value: string | undefined): string {
+  if (!value || value.trim() === '') {
+    return DEFAULT_HOST;
+  }
+  return value.trim();
+}
+
 export const config = {
   port: parsePort(process.env.APP_PORT),
   databasePath: process.env.DATABASE_PATH ?? DEFAULT_DATABASE_PATH,
   bodyLimitBytes: BODY_LIMIT_BYTES,
-  host: '127.0.0.1',
+  host: parseHost(process.env.APP_HOST),
 };
 
 function parseRequiredBoolean(

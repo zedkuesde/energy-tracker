@@ -19,7 +19,7 @@
     "test:client": "vitest run",
     "test:watch": "tsx --test --watch src/server/**/*.test.ts",
     "test:client:watch": "vitest",
-    "migrate": "tsx src/server/migrate.ts",
+    "migrate": "node scripts/run-migrate.mjs",
     "auth:hash": "tsx scripts/auth-hash.ts",
     "auth:secret": "tsx scripts/auth-secret.ts"
   },

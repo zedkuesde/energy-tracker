@@ -182,20 +182,120 @@ npm start
 Copier `.env.example` vers `.env`. Ne jamais y mettre de secret réel dans Git.
 
 - `APP_PORT` — port Fastify (défaut `3000`)
-- `DATABASE_PATH` — chemin SQLite (défaut `./data/energy-tracker.sqlite`)
+- `APP_HOST` — interface d’écoute (défaut `127.0.0.1` en local). En Docker, Compose force `0.0.0.0` pour que le reverse proxy ou `127.0.0.1:3000` de l’hôte puissent joindre le conteneur.
+- `DATABASE_PATH` — chemin SQLite (défaut `./data/energy-tracker.sqlite` ; en Docker `/data/energy-tracker.sqlite`)
 - `AUTH_PASSWORD_HASH` — hash Argon2id du mot de passe unique (obligatoire)
 - `AUTH_SESSION_SECRET` — secret long et aléatoire pour signer le cookie (obligatoire, au moins 32 caractères)
-- `AUTH_COOKIE_SECURE` — `false` en HTTP local, `true` uniquement en production HTTPS. Contrôle seulement l’attribut `Secure` du cookie.
+- `AUTH_COOKIE_SECURE` — `false` en HTTP local, `true` uniquement en production HTTPS. Contrôle seulement l’attribut `Secure` du cookie. Derrière HTTPS, `true` est obligatoire.
 - `AUTH_SESSION_TTL_SECONDS` — durée de session en secondes (défaut `1209600`, soit 14 jours)
 - `TRUST_PROXY` — `false` en développement local. Ne pas le lier à `AUTH_COOKIE_SECURE`.
+- `NODE_ENV` — `production` dans Compose ; ne pas lancer le serveur en mode développement dans Docker
 
-`TRUST_PROXY=true` sera activé plus tard, uniquement quand Fastify n’est pas exposé publiquement et que seul le reverse proxy (Docker ou local) peut joindre l’application. Tant que Fastify écoute directement sur une interface accessible, laisser `TRUST_PROXY=false`.
+`TRUST_PROXY=true` uniquement quand Fastify n’est pas exposé publiquement et que seul un reverse proxy de confiance peut joindre l’application. Tant que Fastify écoute directement sur une interface accessible depuis Internet, laisser `TRUST_PROXY=false`.
 
-En production HTTPS derrière reverse proxy, il faudra `AUTH_COOKIE_SECURE=true` (cookie `Secure`) **et**, séparément, `TRUST_PROXY=true` seulement dans la configuration réseau décrite ci-dessus.
+En production HTTPS derrière reverse proxy : `AUTH_COOKIE_SECURE=true` **et**, séparément, `TRUST_PROXY=true` seulement dans la configuration réseau décrite ci-dessus. Les secrets se collent à la main dans `.env` sur le VPS, jamais dans Git, l’image, Compose ou les logs.
 
-## Docker (rappel pour un jalon ultérieur)
+## Docker
 
-`argon2` est un module natif. Un futur build Docker devra être réalisé dans une image Linux compatible. Ne jamais copier `node_modules` depuis le Mac. Privilégier une image Node Debian/Bookworm plutôt qu’Alpine pour éviter les difficultés liées aux modules natifs.
+`argon2` et `better-sqlite3` sont des modules natifs. L’image se construit sous Linux (Node 22, Debian Bookworm). Ne jamais copier `node_modules` depuis macOS.
+
+`npm start` **n’applique pas** les migrations. Les lancer à la main, un seul process à la fois, **après avoir arrêté** le conteneur s’il tourne déjà.
+
+Le fichier Compose publie `127.0.0.1:3000` (stratégie A) : le reverse proxy installé sur l’hôte du VPS peut joindre Fastify sans exposer le port sur Internet. Ne pas publier `3000` sur `0.0.0.0`.
+
+Garde-fous Compose : `init: true`, `no-new-privileges`, `stop_grace_period: 20s`, `pids_limit: 100`, `mem_limit: 512m`. Le système de fichiers du conteneur n’est pas en lecture seule : SQLite (WAL) doit écrire dans `/data`.
+
+### Construction et démarrage local Docker
+
+```bash
+cp .env.example .env
+# remplir AUTH_PASSWORD_HASH et AUTH_SESSION_SECRET, sans les mettre dans Git
+# garder AUTH_COOKIE_SECURE=false et TRUST_PROXY=false en HTTP local
+docker compose build
+docker compose stop energy-tracker
+docker compose run --rm energy-tracker npm run migrate
+docker compose up -d
+docker compose ps
+docker compose logs -f energy-tracker
+curl -i http://127.0.0.1:3000/health
+```
+
+### Mise à jour sur le VPS
+
+Ne jamais utiliser `docker compose down -v` : cette commande supprimerait le volume nommé `energy_tracker_data` et donc la base SQLite.
+
+```bash
+git pull --ff-only
+docker compose build
+docker compose stop energy-tracker
+docker compose run --rm energy-tracker npm run migrate
+docker compose up -d
+docker compose ps
+docker compose logs --tail=100 energy-tracker
+```
+
+### Validation après déploiement
+
+- `curl -i http://127.0.0.1:3000/health` et healthcheck Compose (`docker compose ps`)
+- accès HTTPS via le reverse proxy (hors de ce dépôt)
+- page `/login`
+- connexion
+- création d’une entrée
+- `docker compose restart energy-tracker` (sans `-v`) puis vérification que l’entrée existe encore
+- déconnexion et refus de l’API sans session (`401`)
+
+### Reverse proxy (prérequis uniquement)
+
+Ce projet ne configure pas le reverse proxy, le domaine, le DNS ni TLS.
+
+- HTTPS est obligatoire en production.
+- Le proxy doit transmettre le trafic à Fastify (`127.0.0.1:3000` avec la stratégie A).
+- Le port Fastify ne doit pas être exposé publiquement.
+- Si `TRUST_PROXY=true`, le proxy doit être le **seul** chemin d’accès à Fastify.
+- Le proxy doit transmettre les en-têtes habituels (`Host`, `X-Forwarded-For`, `X-Forwarded-Proto`).
+- Les cookies de session doivent être `Secure` (`AUTH_COOKIE_SECURE=true`) grâce à HTTPS.
+
+Pour rattacher plus tard le conteneur à un réseau Docker de reverse proxy (stratégie B) : retirer `ports`, ajouter un réseau externe dont **vous** connaissez le nom, par exemple :
+
+```yaml
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK}
+```
+
+Ne pas inventer ce nom. Laisser la stratégie A tant que le proxy écoute sur l’hôte.
+
+### Sauvegarde et restauration SQLite
+
+La base utilise le mode WAL. Ne jamais copier le fichier `.sqlite` pendant que l’application écrit. Les scripts arrêtent le conteneur, puis `better-sqlite3` produit **un seul** fichier cohérent :
+
+`backups/energy-tracker-YYYYMMDD-HHMMSS.sqlite`
+
+Pas de cron dans le MVP. Emplacement sur le VPS : `./backups/` à la racine du clone (non versionné).
+
+Sauvegarde :
+
+```bash
+sh scripts/docker-backup.sh
+```
+
+Restauration (fichier daté existant) :
+
+```bash
+sh scripts/docker-restore.sh backups/energy-tracker-YYYYMMDD-HHMMSS.sqlite
+```
+
+Procédure de restauration :
+
+1. arrêter l’application (le script le fait) ;
+2. sauvegarder l’état actuel dans `backups/energy-tracker-before-restore-*.sqlite` ;
+3. remplacer la base à partir du fichier choisi ;
+4. le process non-root réécrit `/data` (permissions `node`) ;
+5. redémarrer ;
+6. vérifier `/health` puis la page de login.
+
+Ne jamais utiliser `docker compose down -v`.
 
 ## Note pour les sliders
 
@@ -211,4 +311,4 @@ L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retir
 
 ## État actuel
 
-Jalon 5A : authentification locale par mot de passe unique, session SQLite et cookie HttpOnly. Pas de Docker, reverse proxy, PWA ni notifications.
+Jalon 5B : image Docker de production, Compose (port `127.0.0.1:3000`), volume SQLite persistant, migrations manuelles, sauvegarde/restauration documentées. Pas de déploiement VPS, reverse proxy, PWA ni notifications.
