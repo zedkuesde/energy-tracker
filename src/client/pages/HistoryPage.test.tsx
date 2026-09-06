@@ -1,4 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { EnergyEntry } from '../lib/api/entries';
@@ -33,6 +39,35 @@ function ok(data: EnergyEntry[], total = data.length, offset = 0) {
   };
 }
 
+function jsonOk(data: EnergyEntry) {
+  return {
+    ok: true,
+    json: async () => ({ data }),
+  };
+}
+
+function mockSliderRect(element: HTMLElement, width = 200) {
+  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: width,
+    bottom: 44,
+    width,
+    height: 44,
+    toJSON() {
+      return {};
+    },
+  });
+}
+
+function setScore(name: string | RegExp, clientX: number) {
+  const slider = screen.getByRole('slider', { name });
+  mockSliderRect(slider);
+  fireEvent.pointerDown(slider, { clientX });
+}
+
 describe('HistoryPage', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -40,6 +75,7 @@ describe('HistoryPage', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   test('charge et affiche plusieurs entrées dans l’ordre décroissant', async () => {
@@ -181,5 +217,280 @@ describe('HistoryPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('9 / 10')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeEnabled();
+  });
+
+  test('affiche les actions Modifier et Supprimer', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      ok([entry('a', '2026-09-06T12:00:00.000Z')]) as Response,
+    );
+
+    render(<HistoryPage />);
+
+    expect(
+      await screen.findByRole('button', { name: 'Modifier' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Supprimer' }),
+    ).toBeInTheDocument();
+  });
+
+  test('Modifier ouvre le panneau prérempli, sans envie si elle était absente', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockResolvedValue(
+      ok([
+        entry('a', '2026-09-06T16:00:00.000Z', {
+          energy: 8,
+          fatigue: 2,
+          context: 'pause',
+          activity: 'rest',
+        }),
+      ]) as Response,
+    );
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Modifier' }));
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Modifier l’entrée',
+    });
+    expect(within(dialog).getByRole('slider', { name: 'Énergie' })).toHaveValue(
+      '8',
+    );
+    expect(within(dialog).getByRole('slider', { name: 'Fatigue' })).toHaveValue(
+      '2',
+    );
+    expect(
+      within(dialog).getByRole('button', { name: 'Ajouter l’envie' }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('slider', { name: /Envie/ }),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/Contexte/)).toHaveValue('pause');
+    expect(
+      within(dialog).getByRole('button', { name: 'Repos' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(within(dialog).getByText(/6 septembre 2026/)).toBeInTheDocument();
+  });
+
+  test('modification réussie : PATCH, confirmation et carte mise à jour', async () => {
+    const user = userEvent.setup();
+    const original = entry('a', '2026-09-06T16:00:00.000Z', {
+      energy: 6,
+      fatigue: 4,
+    });
+    const updated = {
+      ...original,
+      energy: 8,
+      fatigue: 4,
+      updated_at: '2026-09-06T16:05:00.000Z',
+    };
+
+    vi.mocked(fetch).mockImplementation(async (_input, init) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'PATCH') {
+        return jsonOk(updated) as Response;
+      }
+      return ok([original]) as Response;
+    });
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Modifier' }));
+    setScore('Énergie', 160);
+    await user.click(
+      screen.getByRole('button', { name: 'Enregistrer les modifications' }),
+    );
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Modifications enregistrées.',
+    );
+    expect(screen.getByText('8 / 10')).toBeInTheDocument();
+    const patchCall = vi
+      .mocked(fetch)
+      .mock.calls.find((call) => call[1]?.method === 'PATCH');
+    expect(patchCall?.[0]).toBe('/api/entries/a');
+    expect(patchCall?.[1]).toEqual({
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ energy: 8, fatigue: 4 }),
+    });
+    expect(JSON.stringify(patchCall?.[1]?.body)).not.toContain('timestamp');
+  });
+
+  test('erreur PATCH : valeurs conservées et message affiché', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (_input, init) => {
+      if (init?.method === 'PATCH') {
+        return { ok: false, status: 500 } as Response;
+      }
+      return ok([
+        entry('a', '2026-09-06T16:00:00.000Z', { context: 'note conservée' }),
+      ]) as Response;
+    });
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Modifier' }));
+    const context = screen.getByLabelText(/Contexte/);
+    await user.clear(context);
+    await user.type(context, 'nouvelle note');
+    await user.click(
+      screen.getByRole('button', { name: 'Enregistrer les modifications' }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Cette saisie n'a pas pu être mise à jour. Tes valeurs sont encore là.",
+    );
+    expect(screen.getByLabelText(/Contexte/)).toHaveValue('nouvelle note');
+    expect(
+      screen.getByRole('button', { name: 'Enregistrer les modifications' }),
+    ).toBeEnabled();
+  });
+
+  test('Annuler la modification ne lance aucun PATCH', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockResolvedValue(
+      ok([entry('a', '2026-09-06T16:00:00.000Z')]) as Response,
+    );
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Modifier' }));
+    await user.click(screen.getByRole('button', { name: 'Annuler' }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', { name: 'Modifier l’entrée' }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      vi.mocked(fetch).mock.calls.every((call) => call[1]?.method !== 'PATCH'),
+    ).toBe(true);
+  });
+
+  test('Supprimer ouvre une confirmation et Annuler ne fait aucun DELETE', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockResolvedValue(
+      ok([entry('a', '2026-09-06T16:00:00.000Z')]) as Response,
+    );
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Supprimer' }));
+
+    const dialog = (await screen.findByRole('dialog', {
+      name: 'Supprimer cette entrée ?',
+    })) as HTMLDialogElement;
+    expect(dialog).toHaveTextContent('Cette action est définitive.');
+    expect(dialog).toHaveAttribute('open');
+    await user.click(within(dialog).getByRole('button', { name: 'Annuler' }));
+
+    await waitFor(() => {
+      expect(dialog).not.toHaveAttribute('open');
+    });
+    expect(dialog.open).toBe(false);
+    expect(
+      screen.queryByRole('dialog', { name: 'Supprimer cette entrée ?' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('article')).toBeInTheDocument();
+    expect(
+      vi.mocked(fetch).mock.calls.every((call) => call[1]?.method !== 'DELETE'),
+    ).toBe(true);
+  });
+
+  test('confirmation Supprimer appelle DELETE et retire la carte', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (_input, init) => {
+      if (init?.method === 'DELETE') {
+        return { ok: true, status: 204 } as Response;
+      }
+      return ok([entry('a', '2026-09-06T16:00:00.000Z')], 1) as Response;
+    });
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Supprimer' }));
+    const dialog = (await screen.findByRole('dialog', {
+      name: 'Supprimer cette entrée ?',
+    })) as HTMLDialogElement;
+    await user.click(within(dialog).getByRole('button', { name: 'Supprimer' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Entrée supprimée.',
+    );
+    expect(dialog).not.toHaveAttribute('open');
+    expect(dialog.open).toBe(false);
+    expect(
+      screen.queryByRole('dialog', { name: 'Supprimer cette entrée ?' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith('/api/entries/a', { method: 'DELETE' });
+  });
+
+  test('erreur DELETE : carte conservée et erreur affichée', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockImplementation(async (_input, init) => {
+      if (init?.method === 'DELETE') {
+        return { ok: false, status: 500 } as Response;
+      }
+      return ok([entry('a', '2026-09-06T16:00:00.000Z')]) as Response;
+    });
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Supprimer' }));
+    const dialog = (await screen.findByRole('dialog', {
+      name: 'Supprimer cette entrée ?',
+    })) as HTMLDialogElement;
+    await user.click(within(dialog).getByRole('button', { name: 'Supprimer' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Cette entrée n'a pas pu être supprimée. Tu peux réessayer.",
+    );
+    expect(dialog).toHaveAttribute('open');
+    expect(dialog.open).toBe(true);
+    expect(
+      screen.getByRole('dialog', { name: 'Supprimer cette entrée ?' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('article')).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: 'Supprimer' }),
+    ).toBeEnabled();
+  });
+
+  test('aucune suppression sans confirmation', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      ok([entry('a', '2026-09-06T16:00:00.000Z')]) as Response,
+    );
+
+    render(<HistoryPage />);
+    await screen.findByRole('article');
+
+    expect(
+      vi.mocked(fetch).mock.calls.every((call) => call[1]?.method !== 'DELETE'),
+    ).toBe(true);
+    expect(screen.getByRole('article')).toBeInTheDocument();
+  });
+
+  test('Escape ferme le dialogue de confirmation et réinitialise l’état', async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockResolvedValue(
+      ok([entry('a', '2026-09-06T16:00:00.000Z')]) as Response,
+    );
+
+    render(<HistoryPage />);
+    await user.click(await screen.findByRole('button', { name: 'Supprimer' }));
+    const dialog = (await screen.findByRole('dialog', {
+      name: 'Supprimer cette entrée ?',
+    })) as HTMLDialogElement;
+    expect(dialog.open).toBe(true);
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(dialog.open).toBe(false);
+    });
+    expect(dialog).not.toHaveAttribute('open');
+    expect(
+      screen.queryByRole('dialog', { name: 'Supprimer cette entrée ?' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('article')).toBeInTheDocument();
+    expect(
+      vi.mocked(fetch).mock.calls.every((call) => call[1]?.method !== 'DELETE'),
+    ).toBe(true);
   });
 });

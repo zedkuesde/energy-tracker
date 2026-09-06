@@ -1,14 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { ActivityPicker } from '../components/ActivityPicker';
-import { ScoreSlider } from '../components/ScoreSlider';
+import { EntryFields } from '../components/EntryFields';
 import type { Activity } from '../lib/activities';
 import {
   buildCreateEntryBody,
   createEntry,
   EntrySaveError,
 } from '../lib/createEntry';
-
-const CONTEXT_MAX_LENGTH = 280;
 
 const NETWORK_ERROR_MESSAGE =
   "L'enregistrement n'a pas abouti. Tes valeurs sont encore là.";
@@ -80,82 +77,26 @@ export function LogPage() {
         Énergie, fatigue, envie. À toi de voir ce qui est utile.
       </p>
       <form className="log-form" onSubmit={handleSubmit}>
-        <div className="indicator-list">
-          <ScoreSlider
-            id="energy"
-            label="Énergie"
-            tone="energy"
-            value={energy}
-            onChange={setEnergy}
-          />
-          <ScoreSlider
-            id="fatigue"
-            label="Fatigue"
-            tone="fatigue"
-            value={fatigue}
-            onChange={setFatigue}
-          />
-          {desireOpen ? (
-            <>
-              <ScoreSlider
-                id="desire"
-                label="Envie"
-                tone="desire"
-                optional
-                value={desire}
-                onChange={setDesire}
-              />
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  setDesireOpen(false);
-                  setDesire(null);
-                }}
-              >
-                Retirer
-              </button>
-            </>
-          ) : (
-            <div className="indicator indicator-desire desire-collapsed">
-              <p className="indicator-label">
-                Envie
-                <span className="indicator-optional"> (facultatif)</span>
-              </p>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  setDesireOpen(true);
-                }}
-              >
-                Ajouter l’envie
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="context">
-            Contexte
-            <span className="indicator-optional"> (facultatif)</span>
-          </label>
-          <textarea
-            id="context"
-            className="context-input"
-            rows={3}
-            maxLength={CONTEXT_MAX_LENGTH}
-            value={context}
-            onChange={(event) => {
-              setContext(event.currentTarget.value);
-            }}
-          />
-          <p className="char-count">
-            {context.length} / {CONTEXT_MAX_LENGTH}
-          </p>
-        </div>
-
-        <ActivityPicker value={activity} onChange={setActivity} />
+        <EntryFields
+          energy={energy}
+          fatigue={fatigue}
+          desire={desire}
+          desireOpen={desireOpen}
+          context={context}
+          activity={activity}
+          onEnergyChange={setEnergy}
+          onFatigueChange={setFatigue}
+          onDesireChange={setDesire}
+          onDesireOpen={() => {
+            setDesireOpen(true);
+          }}
+          onDesireRemove={() => {
+            setDesireOpen(false);
+            setDesire(null);
+          }}
+          onContextChange={setContext}
+          onActivityChange={setActivity}
+        />
 
         {successMessage ? (
           <p className="form-status" role="status">

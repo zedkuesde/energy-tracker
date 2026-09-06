@@ -536,6 +536,115 @@ textarea:focus-visible {
   color: var(--muted);
 }
 
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.entry-actions .text-button {
+  min-height: 2.75rem;
+  margin: 0;
+}
+
+.entry-delete {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.history-notice {
+  margin-bottom: 0.75rem;
+}
+
+.app-dialog {
+  width: min(calc(100% - 1.5rem), 28rem);
+  max-height: min(calc(100dvh - 1.5rem), 40rem);
+  margin: auto;
+  padding: 1rem 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--text);
+  overflow: auto;
+}
+
+.app-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-dialog::backdrop {
+  background: rgb(28 25 20 / 48%);
+}
+
+.dialog-title {
+  margin: 0 0 0.65rem;
+  font-size: 1.2rem;
+}
+
+.dialog-title:focus {
+  outline: none;
+}
+
+.dialog-title:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.dialog-body p {
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+}
+
+.dialog-when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0 0 0.85rem;
+}
+
+.dialog-form {
+  margin: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  padding-top: 0.55rem;
+}
+
+.dialog-actions .primary-button,
+.dialog-actions .secondary-button,
+.dialog-actions .danger-button {
+  width: 100%;
+  margin-top: 0;
+}
+
+.danger-button {
+  min-height: 2.75rem;
+  border: 1px solid var(--fatigue);
+  border-radius: 0.95rem;
+  background: var(--fatigue-soft);
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.danger-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
 .load-more,
 .status-action {
   width: 100%;

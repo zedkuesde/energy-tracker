@@ -86,6 +86,17 @@ export function useEntryHistory() {
     void loadPage(entries.length, true);
   }, [entries.length, loadPage]);
 
+  const replaceEntry = useCallback((updated: EnergyEntry) => {
+    setEntries((current) =>
+      current.map((entry) => (entry.id === updated.id ? updated : entry)),
+    );
+  }, []);
+
+  const removeEntry = useCallback((id: string) => {
+    setEntries((current) => current.filter((entry) => entry.id !== id));
+    setTotal((current) => Math.max(0, current - 1));
+  }, []);
+
   return {
     entries,
     total,
@@ -96,5 +107,7 @@ export function useEntryHistory() {
     retry,
     loadMore,
     retryMore,
+    replaceEntry,
+    removeEntry,
   };
 }

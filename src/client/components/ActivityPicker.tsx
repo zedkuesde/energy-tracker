@@ -1,22 +1,24 @@
 import { ACTIVITIES, type Activity } from '../lib/activities';
 
 type ActivityPickerProps = {
+  idPrefix?: string;
   value: Activity | null;
   onChange: (value: Activity | null) => void;
 };
 
-export function ActivityPicker({ value, onChange }: ActivityPickerProps) {
+export function ActivityPicker({
+  idPrefix = 'activity',
+  value,
+  onChange,
+}: ActivityPickerProps) {
+  const labelId = `${idPrefix}-label`;
   return (
     <div className="field">
-      <p className="field-label" id="activity-label">
+      <p className="field-label" id={labelId}>
         Activité
         <span className="indicator-optional"> (facultatif)</span>
       </p>
-      <div
-        className="activity-row"
-        role="group"
-        aria-labelledby="activity-label"
-      >
+      <div className="activity-row" role="group" aria-labelledby={labelId}>
         {ACTIVITIES.map((item) => {
           const selected = value === item.value;
           return (

@@ -58,16 +58,23 @@ npm run dev:server
 Pages frontend :
 
 - `/` — saisie rapide connectée à `POST /api/entries`
-- `/history` — historique réel (`GET /api/entries`, pagination « Charger plus »)
+- `/history` — historique réel (`GET /api/entries`, pagination « Charger plus », modification et suppression)
 - `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours)
 
-API disponible dès le Jalon 2 :
+API disponible :
 
 - `GET /health`
 - `POST /api/entries`
 - `GET /api/entries?from=&to=&limit=&offset=`
+- `GET /api/entries/:id`
+- `PATCH /api/entries/:id`
+- `DELETE /api/entries/:id`
 
 `limit` vaut 50 par défaut et 100 au maximum. Une `limit` supérieure à 100 est refusée (`400`). `offset` doit être un entier ≥ 0. `from` et `to` sont inclusifs.
+
+L’identifiant `:id` doit être un UUID v4. Un identifiant mal formé vaut `400`. Une entrée absente vaut `404`.
+
+`PATCH` n’accepte que `timestamp`, `energy`, `fatigue`, `desire`, `context` et `activity`. Un champ à `null` retire `desire`, `context` ou `activity`. `id`, `created_at` et `updated_at` ne sont pas modifiables. `updated_at` est mis à jour côté serveur uniquement après un PATCH réussi. L’interface d’édition n’envoie jamais `timestamp` : la date et l’heure restent affichées en lecture seule dans `Europe/Paris`.
 
 Les graphes n’utilisent pas de route `/api/stats`. Ils relisent `GET /api/entries` avec `from` / `to`, page par page (`limit=100`), jusqu’à avoir toutes les entrées de la période, une page vide, ou 1 000 entrées. Au-delà, un message indique que la vue ne peut pas charger davantage.
 
@@ -139,4 +146,4 @@ L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retir
 
 ## État actuel
 
-Jalon 4 : historique et graphes branchés sur `GET /api/entries`. Pas d’édition ni de suppression, pas d’authentification, Docker ni PWA.
+Jalon 4.5 : historique avec modification et suppression confirmée. Pas d’authentification, Docker ni PWA.
