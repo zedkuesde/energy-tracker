@@ -1,0 +1,98 @@
+import type { FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
+import type { SqliteDatabase } from '../db.js';
+import type { EnergyEntry } from '../types.js';
+import { HttpError } from '../types.js';
+import {
+  parseCreateEntryBody,
+  parseListEntriesQuery,
+} from '../validation/entry.js';
+
+type EntryRow = EnergyEntry;
+
+export function registerEntryRoutes(
+  app: FastifyInstance,
+  db: SqliteDatabase,
+): void {
+  const insert = db.prepare(`
+    INSERT INTO energy_entries (
+      id, timestamp, energy, fatigue, desire, context, activity, created_at, updated_at
+    ) VALUES (
+      @id, @timestamp, @energy, @fatigue, @desire, @context, @activity, @created_at, @updated_at
+    )
+  `);
+
+  const selectPage = db.prepare(`
+    SELECT id, timestamp, energy, fatigue, desire, context, activity, created_at, updated_at
+    FROM energy_entries
+    WHERE (@from IS NULL OR timestamp >= @from)
+      AND (@to IS NULL OR timestamp <= @to)
+    ORDER BY timestamp DESC, id DESC
+    LIMIT @limit OFFSET @offset
+  `);
+
+  const countPage = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM energy_entries
+    WHERE (@from IS NULL OR timestamp >= @from)
+      AND (@to IS NULL OR timestamp <= @to)
+  `);
+
+  app.post('/api/entries', async (request, reply) => {
+    const input = parseCreateEntryBody(request.body);
+    const now = new Date().toISOString();
+    const entry: EnergyEntry = {
+      id: randomUUID(),
+      timestamp: input.timestamp,
+      energy: input.energy,
+      fatigue: input.fatigue,
+      desire: input.desire,
+      context: input.context,
+      activity: input.activity,
+      created_at: now,
+      updated_at: now,
+    };
+
+    try {
+      insert.run(entry);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.toLowerCase().includes('constraint')
+      ) {
+        throw new HttpError(
+          400,
+          'validation_error',
+          'Les données sont invalides.',
+        );
+      }
+      throw error;
+    }
+
+    return reply.status(201).send({ data: entry });
+  });
+
+  app.get('/api/entries', async (request, reply) => {
+    const query = request.query as Record<string, string | undefined>;
+    const parsed = parseListEntriesQuery(query);
+    const rows = selectPage.all({
+      from: parsed.from,
+      to: parsed.to,
+      limit: parsed.limit,
+      offset: parsed.offset,
+    }) as EntryRow[];
+    const { total } = countPage.get({
+      from: parsed.from,
+      to: parsed.to,
+    }) as { total: number };
+
+    return reply.send({
+      data: rows,
+      pagination: {
+        limit: parsed.limit,
+        offset: parsed.offset,
+        total,
+      },
+    });
+  });
+}
