@@ -1,0 +1,29 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# SQLite data and journals
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Backups
+backups/
+
+# Logs and local Vite files
+*.log
+*.local
+
+# macOS and editors
+.DS_Store
+.vscode/
