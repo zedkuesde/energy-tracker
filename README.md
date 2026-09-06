@@ -55,9 +55,9 @@ npm run dev:client
 npm run dev:server
 ```
 
-Pages frontend (squelette, formulaire non branché) :
+Pages frontend :
 
-- `/` — saisie (squelette)
+- `/` — saisie rapide connectée à `POST /api/entries`
 - `/history` — historique (placeholder)
 - `/charts` — graphes (placeholder)
 
@@ -87,10 +87,14 @@ Les migrations sont versionnées dans `migrations/`. Une migration déjà appliq
 npm run lint
 npm run format
 npm run test
+npm run test:client
 npm run test:watch
+npm run test:client:watch
 npm run build
 npm start
 ```
+
+`npm run test` enchaîne les tests API (`tsx --test`) et les tests frontend (Vitest). `npm run test:client` lance uniquement Vitest.
 
 `npm run build` produit :
 
@@ -110,16 +114,18 @@ Copier `.env.example` vers `.env` si besoin. Ne jamais y mettre de secret réel 
 
 Les variables d’authentification sont réservées au Jalon 5.
 
-## Note pour le Jalon 3 (sliders)
+## Note pour les sliders
 
-Ne pas changer le formulaire visuel tant que le Jalon 3 n’est pas ouvert. Les sliders devront alors :
+Les curseurs d’énergie, de fatigue et d’envie sont de vrais `input type="range"` :
 
-- être manipulables par glissement ;
-- déplacer leur valeur vers l’endroit attendu lorsqu’on appuie ou clique directement sur la piste ;
-- rester utilisables au clavier ;
-- afficher clairement la valeur sélectionnée ;
-- offrir de grandes zones tactiles adaptées à l’iPhone.
+- glissement du pouce ;
+- tap ou clic n’importe où sur la piste (valeur entière la plus proche) ;
+- clavier (flèches, Home, End) ;
+- affichage `6 / 10`, ou `— / 10` tant qu’aucune valeur n’est choisie ;
+- grandes zones tactiles adaptées à l’iPhone.
+
+L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retirer** l’efface. Aucune valeur n’est envoyée tant qu’elle n’a pas été choisie.
 
 ## État actuel
 
-Jalon 2 : API Fastify, SQLite locale, migrations et tests. Le frontend du Jalon 1 n’enregistre pas encore d’entrée. Pas d’authentification, Docker, PWA, historique réel ni graphes.
+Jalon 3 : saisie rapide branchée sur `POST /api/entries`. Historique et graphes restent des placeholders. Pas d’authentification, Docker ni PWA.
