@@ -22,7 +22,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/server/**/*.ts', 'vite.config.ts', 'eslint.config.js'],
+    files: [
+      'src/server/**/*.ts',
+      'scripts/**/*.ts',
+      'vite.config.ts',
+      'eslint.config.js',
+    ],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.recommended,

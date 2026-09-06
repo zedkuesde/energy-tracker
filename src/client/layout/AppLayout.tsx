@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from '../auth/auth-context';
 
 const navItems = [
   { to: '/', label: 'Saisie', end: true },
@@ -7,10 +8,21 @@ const navItems = [
 ] as const;
 
 export function AppLayout() {
+  const { logout } = useAuth();
+
   return (
     <div className="app-shell">
       <header className="app-header">
         <p className="app-name">Energy Tracker</p>
+        <button
+          type="button"
+          className="text-button logout-button"
+          onClick={() => {
+            void logout();
+          }}
+        >
+          Se déconnecter
+        </button>
       </header>
       <main className="app-main">
         <Outlet />

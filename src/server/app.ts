@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import { config } from './config.js';
+import { registerAuth } from './auth/register.js';
+import { config, parseAuthConfig, type AuthConfig } from './config.js';
 import { openDatabase } from './db.js';
 import { runMigrations } from './migrate.js';
 import { registerEntryRoutes } from './routes/entries.js';
@@ -11,11 +12,13 @@ export type BuildAppOptions = {
   databasePath: string;
   applyMigrations?: boolean;
   logger?: boolean;
+  auth?: AuthConfig;
 };
 
 export async function buildApp(
   options: BuildAppOptions,
 ): Promise<FastifyInstance> {
+  const auth = options.auth ?? parseAuthConfig();
   const db = openDatabase(options.databasePath);
   if (options.applyMigrations) {
     runMigrations(db);
@@ -24,7 +27,9 @@ export async function buildApp(
   const app = Fastify({
     logger: options.logger ?? false,
     bodyLimit: config.bodyLimitBytes,
+    trustProxy: auth.trustProxy,
   });
+  app.decorate('sqlite', db);
 
   app.addHook('onClose', async () => {
     db.close();
@@ -66,6 +71,7 @@ export async function buildApp(
     });
   });
 
+  await registerAuth(app, db, auth);
   registerHealthRoute(app);
   registerEntryRoutes(app, db);
 

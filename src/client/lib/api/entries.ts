@@ -92,7 +92,7 @@ export function buildPatchEntryBody(
 
 async function requestJson(url: string, init?: RequestInit): Promise<Response> {
   try {
-    return await fetch(url, init);
+    return await fetch(url, { credentials: 'same-origin', ...init });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;

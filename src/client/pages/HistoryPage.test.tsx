@@ -310,6 +310,7 @@ describe('HistoryPage', () => {
     expect(patchCall?.[0]).toBe('/api/entries/a');
     expect(patchCall?.[1]).toEqual({
       method: 'PATCH',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ energy: 8, fatigue: 4 }),
     });
@@ -419,7 +420,10 @@ describe('HistoryPage', () => {
       screen.queryByRole('dialog', { name: 'Supprimer cette entrée ?' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('article')).not.toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith('/api/entries/a', { method: 'DELETE' });
+    expect(fetch).toHaveBeenCalledWith('/api/entries/a', {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
   });
 
   test('erreur DELETE : carte conservée et erreur affichée', async () => {

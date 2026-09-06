@@ -42,11 +42,57 @@ L’accès direct à Fastify sur le port 3000 reste disponible.
 ```bash
 nvm use
 npm install
+cp .env.example .env
+```
+
+Générer un hash Argon2id (saisie masquée, le hash s’affiche uniquement sur stdout) :
+
+```bash
+npm run auth:hash
+```
+
+Si tu préfères éviter toute saisie interactive, tu peux aussi piped depuis `read -s` :
+
+```bash
+read -s PASS
+printf '%s' "$PASS" | npm run auth:hash
+unset PASS
+```
+
+Générer `AUTH_SESSION_SECRET` (32 octets aléatoires en hexadécimal) :
+
+```bash
+npm run auth:secret
+```
+
+Coller les valeurs dans `.env`. En local, garder :
+
+```dotenv
+AUTH_COOKIE_SECURE=false
+TRUST_PROXY=false
+```
+
+Ne jamais coller un vrai secret dans Git, le README ou `.env.example`.
+
+Puis :
+
+```bash
 npm run migrate
 npm run dev
 ```
 
-`npm run dev` lance Vite et Fastify ensemble.
+`npm run dev` lance Vite et Fastify ensemble. Sans `AUTH_PASSWORD_HASH` et `AUTH_SESSION_SECRET` valides, le serveur refuse de démarrer.
+
+Vérifier login / logout :
+
+- ouvrir [http://localhost:5173/login](http://localhost:5173/login) ;
+- se connecter avec le mot de passe correspondant au hash ;
+- `/`, `/history` et `/charts` doivent être accessibles ;
+- `GET /api/entries` sans cookie doit renvoyer `401` ;
+- « Se déconnecter » ramène à `/login` ;
+- un nouvel appel à `/api/entries` doit encore renvoyer `401`.
+
+Dans les outils du navigateur, le cookie `energy_tracker_session` est `HttpOnly`, `SameSite=Lax`, `Path=/`, et `Secure` est absent en local (`AUTH_COOKIE_SECURE=false`).
 
 Scripts séparés :
 
@@ -57,18 +103,22 @@ npm run dev:server
 
 Pages frontend :
 
+- `/login` — connexion (accessible sans session)
 - `/` — saisie rapide connectée à `POST /api/entries`
 - `/history` — historique réel (`GET /api/entries`, pagination « Charger plus », modification et suppression)
 - `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours)
 
 API disponible :
 
-- `GET /health`
-- `POST /api/entries`
-- `GET /api/entries?from=&to=&limit=&offset=`
-- `GET /api/entries/:id`
-- `PATCH /api/entries/:id`
-- `DELETE /api/entries/:id`
+- `GET /health` — public
+- `POST /api/auth/login` — public
+- `POST /api/auth/logout` — public
+- `GET /api/auth/session` — public (répond `401` sans session valide)
+- `POST /api/entries` — protégé
+- `GET /api/entries?from=&to=&limit=&offset=` — protégé
+- `GET /api/entries/:id` — protégé
+- `PATCH /api/entries/:id` — protégé
+- `DELETE /api/entries/:id` — protégé
 
 `limit` vaut 50 par défaut et 100 au maximum. Une `limit` supérieure à 100 est refusée (`400`). `offset` doit être un entier ≥ 0. `from` et `to` sont inclusifs.
 
@@ -99,6 +149,10 @@ npm run migrate
 
 Les migrations sont versionnées dans `migrations/`. Une migration déjà appliquée n’est pas rejouée. Aucune migration destructive n’est exécutée automatiquement.
 
+Les sessions sont stockées dans SQLite (table `sessions`). Elles disparaissent si la base est supprimée. Une session expirée est refusée, supprimée, et le cookie est effacé. Le logout supprime la session côté serveur.
+
+La limitation des tentatives de connexion (5 échecs / 15 minutes / IP) est en mémoire : elle est réinitialisée au redémarrage du process.
+
 ## Lint, tests, formatage et build
 
 ```bash
@@ -125,12 +179,23 @@ npm start
 
 ## Variables d’environnement
 
-Copier `.env.example` vers `.env` si besoin. Ne jamais y mettre de secret réel dans Git.
+Copier `.env.example` vers `.env`. Ne jamais y mettre de secret réel dans Git.
 
 - `APP_PORT` — port Fastify (défaut `3000`)
 - `DATABASE_PATH` — chemin SQLite (défaut `./data/energy-tracker.sqlite`)
+- `AUTH_PASSWORD_HASH` — hash Argon2id du mot de passe unique (obligatoire)
+- `AUTH_SESSION_SECRET` — secret long et aléatoire pour signer le cookie (obligatoire, au moins 32 caractères)
+- `AUTH_COOKIE_SECURE` — `false` en HTTP local, `true` uniquement en production HTTPS. Contrôle seulement l’attribut `Secure` du cookie.
+- `AUTH_SESSION_TTL_SECONDS` — durée de session en secondes (défaut `1209600`, soit 14 jours)
+- `TRUST_PROXY` — `false` en développement local. Ne pas le lier à `AUTH_COOKIE_SECURE`.
 
-Les variables d’authentification sont réservées au Jalon 5.
+`TRUST_PROXY=true` sera activé plus tard, uniquement quand Fastify n’est pas exposé publiquement et que seul le reverse proxy (Docker ou local) peut joindre l’application. Tant que Fastify écoute directement sur une interface accessible, laisser `TRUST_PROXY=false`.
+
+En production HTTPS derrière reverse proxy, il faudra `AUTH_COOKIE_SECURE=true` (cookie `Secure`) **et**, séparément, `TRUST_PROXY=true` seulement dans la configuration réseau décrite ci-dessus.
+
+## Docker (rappel pour un jalon ultérieur)
+
+`argon2` est un module natif. Un futur build Docker devra être réalisé dans une image Linux compatible. Ne jamais copier `node_modules` depuis le Mac. Privilégier une image Node Debian/Bookworm plutôt qu’Alpine pour éviter les difficultés liées aux modules natifs.
 
 ## Note pour les sliders
 
@@ -146,4 +211,4 @@ L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retir
 
 ## État actuel
 
-Jalon 4.5 : historique avec modification et suppression confirmée. Pas d’authentification, Docker ni PWA.
+Jalon 5A : authentification locale par mot de passe unique, session SQLite et cookie HttpOnly. Pas de Docker, reverse proxy, PWA ni notifications.

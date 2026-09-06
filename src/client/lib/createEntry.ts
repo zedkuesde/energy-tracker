@@ -52,6 +52,7 @@ export async function createEntry(payload: CreateEntryPayload): Promise<void> {
   try {
     response = await fetch('/api/entries', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });

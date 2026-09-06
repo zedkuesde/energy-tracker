@@ -5,6 +5,21 @@ import { fileURLToPath } from 'node:url';
 const BODY_LIMIT_BYTES = 16 * 1024;
 const DEFAULT_PORT = 3000;
 const DEFAULT_DATABASE_PATH = './data/energy-tracker.sqlite';
+const DEFAULT_SESSION_TTL_SECONDS = 1_209_600;
+const MIN_SESSION_SECRET_LENGTH = 32;
+
+export const AUTH_CONFIG_ERROR =
+  'Configuration d’authentification invalide : créez .env depuis .env.example et définissez AUTH_PASSWORD_HASH ainsi que AUTH_SESSION_SECRET.';
+
+export const SESSION_COOKIE_NAME = 'energy_tracker_session';
+
+export type AuthConfig = {
+  passwordHash: string;
+  sessionSecret: string;
+  cookieSecure: boolean;
+  sessionTtlSeconds: number;
+  trustProxy: boolean;
+};
 
 export function findProjectRoot(fromDir: string): string {
   let current = fromDir;
@@ -71,3 +86,57 @@ export const config = {
   bodyLimitBytes: BODY_LIMIT_BYTES,
   host: '127.0.0.1',
 };
+
+function parseRequiredBoolean(
+  value: string | undefined,
+  fallback: boolean,
+): boolean {
+  if (value === undefined || value.trim() === '') {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true') {
+    return true;
+  }
+  if (normalized === 'false') {
+    return false;
+  }
+  throw new Error(
+    'Configuration d’authentification invalide : AUTH_COOKIE_SECURE et TRUST_PROXY doivent valoir true ou false.',
+  );
+}
+
+function parseSessionTtl(value: string | undefined): number {
+  if (value === undefined || value.trim() === '') {
+    return DEFAULT_SESSION_TTL_SECONDS;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(
+      'Configuration d’authentification invalide : AUTH_SESSION_TTL_SECONDS doit être un entier positif.',
+    );
+  }
+  return parsed;
+}
+
+export function parseAuthConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): AuthConfig {
+  const passwordHash = env.AUTH_PASSWORD_HASH?.trim() ?? '';
+  const sessionSecret = env.AUTH_SESSION_SECRET?.trim() ?? '';
+
+  if (
+    !passwordHash.startsWith('$argon2id$') ||
+    sessionSecret.length < MIN_SESSION_SECRET_LENGTH
+  ) {
+    throw new Error(AUTH_CONFIG_ERROR);
+  }
+
+  return {
+    passwordHash,
+    sessionSecret,
+    cookieSecure: parseRequiredBoolean(env.AUTH_COOKIE_SECURE, false),
+    sessionTtlSeconds: parseSessionTtl(env.AUTH_SESSION_TTL_SECONDS),
+    trustProxy: parseRequiredBoolean(env.TRUST_PROXY, false),
+  };
+}

@@ -1,21 +1,27 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from './app.js';
+import { SESSION_COOKIE_NAME } from './config.js';
+import { createTestApp, loginCookie } from './test-support.js';
 
-async function createApp(): Promise<FastifyInstance> {
-  return buildApp({
-    databasePath: ':memory:',
-    applyMigrations: true,
-    logger: false,
+let app: FastifyInstance;
+let cookie: string;
+
+function inject(opts: Parameters<FastifyInstance['inject']>[0]) {
+  return app.inject({
+    ...opts,
+    cookies: { [SESSION_COOKIE_NAME]: cookie },
   });
 }
 
-describe('POST /api/entries et GET /api/entries', () => {
-  let app: FastifyInstance;
+async function setupAuthenticatedApp(): Promise<void> {
+  app = await createTestApp();
+  cookie = await loginCookie(app);
+}
 
+describe('POST /api/entries et GET /api/entries', () => {
   beforeEach(async () => {
-    app = await createApp();
+    await setupAuthenticatedApp();
   });
 
   afterEach(async () => {
@@ -23,7 +29,7 @@ describe('POST /api/entries et GET /api/entries', () => {
   });
 
   async function createEntry(payload: Record<string, unknown>) {
-    return app.inject({
+    return inject({
       method: 'POST',
       url: '/api/entries',
       payload,
@@ -193,7 +199,7 @@ describe('POST /api/entries et GET /api/entries', () => {
       timestamp: '2026-09-06T11:00:00.000Z',
     });
 
-    const response = await app.inject({ method: 'GET', url: '/api/entries' });
+    const response = await inject({ method: 'GET', url: '/api/entries' });
     assert.equal(response.statusCode, 200);
     const energies = response
       .json()
@@ -218,11 +224,11 @@ describe('POST /api/entries et GET /api/entries', () => {
       timestamp: '2026-09-06T12:00:00.000Z',
     });
 
-    const page1 = await app.inject({
+    const page1 = await inject({
       method: 'GET',
       url: '/api/entries?limit=2&offset=0',
     });
-    const page2 = await app.inject({
+    const page2 = await inject({
       method: 'GET',
       url: '/api/entries?limit=2&offset=2',
     });
@@ -237,7 +243,7 @@ describe('POST /api/entries et GET /api/entries', () => {
   });
 
   test('limit supérieur à 100 refusé', async () => {
-    const response = await app.inject({
+    const response = await inject({
       method: 'GET',
       url: '/api/entries?limit=101',
     });
@@ -245,11 +251,11 @@ describe('POST /api/entries et GET /api/entries', () => {
   });
 
   test('offset invalide refusé', async () => {
-    const negative = await app.inject({
+    const negative = await inject({
       method: 'GET',
       url: '/api/entries?offset=-1',
     });
-    const textual = await app.inject({
+    const textual = await inject({
       method: 'GET',
       url: '/api/entries?offset=abc',
     });
@@ -274,7 +280,7 @@ describe('POST /api/entries et GET /api/entries', () => {
       timestamp: '2026-09-06T12:00:00.000Z',
     });
 
-    const response = await app.inject({
+    const response = await inject({
       method: 'GET',
       url: '/api/entries?from=2026-09-06T10:00:00.000Z&to=2026-09-06T11:00:00.000Z',
     });
@@ -287,7 +293,7 @@ describe('POST /api/entries et GET /api/entries', () => {
   });
 
   test('from > to refusé', async () => {
-    const response = await app.inject({
+    const response = await inject({
       method: 'GET',
       url: '/api/entries?from=2026-09-06T12:00:00.000Z&to=2026-09-06T10:00:00.000Z',
     });
@@ -295,7 +301,7 @@ describe('POST /api/entries et GET /api/entries', () => {
   });
 
   test('aucune donnée retourne une liste vide et total 0', async () => {
-    const response = await app.inject({ method: 'GET', url: '/api/entries' });
+    const response = await inject({ method: 'GET', url: '/api/entries' });
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.json(), {
       data: [],
@@ -305,10 +311,8 @@ describe('POST /api/entries et GET /api/entries', () => {
 });
 
 describe('GET PATCH DELETE /api/entries/:id', () => {
-  let app: FastifyInstance;
-
   beforeEach(async () => {
-    app = await createApp();
+    await setupAuthenticatedApp();
   });
 
   afterEach(async () => {
@@ -316,7 +320,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   });
 
   async function createEntry(payload: Record<string, unknown>) {
-    return app.inject({
+    return inject({
       method: 'POST',
       url: '/api/entries',
       payload,
@@ -335,7 +339,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
     });
     const id = created.json().data.id as string;
 
-    const response = await app.inject({
+    const response = await inject({
       method: 'GET',
       url: `/api/entries/${id}`,
     });
@@ -346,7 +350,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   });
 
   test('GET retourne 404 pour un UUID inexistant', async () => {
-    const response = await app.inject({
+    const response = await inject({
       method: 'GET',
       url: `/api/entries/${missingId}`,
     });
@@ -355,11 +359,11 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   });
 
   test('GET retourne 400 pour un ID invalide', async () => {
-    const malformed = await app.inject({
+    const malformed = await inject({
       method: 'GET',
       url: '/api/entries/not-a-uuid',
     });
-    const uuidV1 = await app.inject({
+    const uuidV1 = await inject({
       method: 'GET',
       url: '/api/entries/6ba7b810-9dad-11d1-80b4-00c04fd430c8',
     });
@@ -372,7 +376,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
 
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { energy: 8, fatigue: 2 },
@@ -393,7 +397,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
     });
     const id = created.json().data.id as string;
 
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { energy: 9 },
@@ -411,7 +415,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH avec desire: null retire l’envie', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4, desire: 5 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { desire: null },
@@ -427,7 +431,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
       context: 'note',
     });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { context: null },
@@ -443,7 +447,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
       activity: 'sport',
     });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { activity: null },
@@ -455,7 +459,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH normalise le contexte', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { context: '  marche   rapide  ' },
@@ -467,7 +471,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH rejette un body vide', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: {},
@@ -478,13 +482,13 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH rejette les champs inconnus', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { energy: 7, extra: true },
     });
     assert.equal(response.statusCode, 400);
-    const forbidden = await app.inject({
+    const forbidden = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { created_at: '2026-09-06T16:00:00.000Z' },
@@ -495,12 +499,12 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH rejette les valeurs hors 0–10', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const energy = await app.inject({
+    const energy = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { energy: 11 },
     });
-    const desire = await app.inject({
+    const desire = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { desire: -1 },
@@ -512,7 +516,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH rejette une activité invalide', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { activity: 'napping' },
@@ -523,7 +527,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH rejette un timestamp sans fuseau', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { timestamp: '2026-09-06T15:45:00' },
@@ -534,7 +538,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('PATCH normalise un timestamp avec offset en UTC', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${id}`,
       payload: { timestamp: '2026-09-06T17:45:00+02:00' },
@@ -547,7 +551,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const original = created.json().data;
     const before = Date.now();
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${original.id}`,
       payload: { energy: 5 },
@@ -567,7 +571,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   });
 
   test('PATCH retourne 404 pour une entrée inexistante', async () => {
-    const response = await app.inject({
+    const response = await inject({
       method: 'PATCH',
       url: `/api/entries/${missingId}`,
       payload: { energy: 5 },
@@ -578,7 +582,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('DELETE retourne 204 et supprime l’entrée', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    const response = await app.inject({
+    const response = await inject({
       method: 'DELETE',
       url: `/api/entries/${id}`,
     });
@@ -589,11 +593,11 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   test('l’entrée supprimée n’apparaît plus dans GET /api/entries', async () => {
     const created = await createEntry({ energy: 6, fatigue: 4 });
     const id = created.json().data.id as string;
-    await app.inject({ method: 'DELETE', url: `/api/entries/${id}` });
-    const list = await app.inject({ method: 'GET', url: '/api/entries' });
+    await inject({ method: 'DELETE', url: `/api/entries/${id}` });
+    const list = await inject({ method: 'GET', url: '/api/entries' });
     assert.equal(list.json().data.length, 0);
     assert.equal(list.json().pagination.total, 0);
-    const missing = await app.inject({
+    const missing = await inject({
       method: 'GET',
       url: `/api/entries/${id}`,
     });
@@ -601,7 +605,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   });
 
   test('DELETE retourne 404 pour un UUID inexistant', async () => {
-    const response = await app.inject({
+    const response = await inject({
       method: 'DELETE',
       url: `/api/entries/${missingId}`,
     });
@@ -609,7 +613,7 @@ describe('GET PATCH DELETE /api/entries/:id', () => {
   });
 
   test('DELETE retourne 400 pour un ID invalide', async () => {
-    const response = await app.inject({
+    const response = await inject({
       method: 'DELETE',
       url: '/api/entries/not-a-uuid',
     });

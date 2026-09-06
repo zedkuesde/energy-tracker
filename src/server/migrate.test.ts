@@ -17,7 +17,10 @@ test('migration exécutée une fois puis relancée sans recréer ni effacer de d
   const db = openDatabase(databasePath);
   try {
     const first = runMigrations(db);
-    assert.deepEqual(first, ['001_create_energy_entries.sql']);
+    assert.deepEqual(first, [
+      '001_create_energy_entries.sql',
+      '002_create_sessions.sql',
+    ]);
 
     db.prepare(
       `INSERT INTO energy_entries (
@@ -48,7 +51,10 @@ test('migration exécutée une fois puis relancée sans recréer ni effacer de d
     const migrations = db
       .prepare('SELECT id FROM schema_migrations ORDER BY id')
       .all() as Array<{ id: string }>;
-    assert.deepEqual(migrations, [{ id: '001_create_energy_entries.sql' }]);
+    assert.deepEqual(migrations, [
+      { id: '001_create_energy_entries.sql' },
+      { id: '002_create_sessions.sql' },
+    ]);
   } finally {
     db.close();
   }

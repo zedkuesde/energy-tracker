@@ -51,7 +51,7 @@ describe('fetchEntries', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       '/api/entries?from=2026-08-30T18%3A00%3A00.000Z&to=2026-09-06T18%3A00%3A00.000Z&limit=100&offset=0',
-      expect.objectContaining({}),
+      expect.objectContaining({ credentials: 'same-origin' }),
     );
   });
 });
@@ -126,7 +126,7 @@ describe('fetchEntry, patchEntry, deleteEntry', () => {
     await expect(fetchEntry(entry.id)).resolves.toEqual(entry);
     expect(fetch).toHaveBeenCalledWith(
       `/api/entries/${entry.id}`,
-      expect.objectContaining({}),
+      expect.objectContaining({ credentials: 'same-origin' }),
     );
   });
 
@@ -144,6 +144,7 @@ describe('fetchEntry, patchEntry, deleteEntry', () => {
     ).resolves.toEqual(entry);
     expect(fetch).toHaveBeenCalledWith(`/api/entries/${entry.id}`, {
       method: 'PATCH',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ energy: 8, fatigue: 4 }),
     });
@@ -159,7 +160,7 @@ describe('fetchEntry, patchEntry, deleteEntry', () => {
     await deleteEntry('11111111-2222-4333-8444-555555555555');
     expect(fetch).toHaveBeenCalledWith(
       '/api/entries/11111111-2222-4333-8444-555555555555',
-      { method: 'DELETE' },
+      { method: 'DELETE', credentials: 'same-origin' },
     );
   });
 });

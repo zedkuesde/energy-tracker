@@ -120,6 +120,7 @@ describe('LogPage', () => {
 
     expect(fetch).toHaveBeenCalledWith('/api/entries', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         energy: 6,

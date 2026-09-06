@@ -34,6 +34,15 @@ export class HttpError extends Error {
   }
 }
 
+declare module 'fastify' {
+  interface FastifyRequest {
+    sessionId?: string;
+  }
+  interface FastifyInstance {
+    sqlite: import('./db.js').SqliteDatabase;
+  }
+}
+
 export function isActivity(value: string): value is Activity {
   return (ACTIVITIES as readonly string[]).includes(value);
 }
