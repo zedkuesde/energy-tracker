@@ -6,6 +6,7 @@ import { registerAuthHooks } from './hooks.js';
 import { createLoginRateLimiter } from './rate-limit.js';
 import { registerAuthRoutes } from './routes.js';
 import { createSessionStore } from './sessions.js';
+import { createUserStore } from './users.js';
 
 export async function registerAuth(
   app: FastifyInstance,
@@ -16,7 +17,8 @@ export async function registerAuth(
     secret: auth.sessionSecret,
   });
   const store = createSessionStore(db);
+  const users = createUserStore(db);
   const rateLimiter = createLoginRateLimiter();
   registerAuthHooks(app, store, auth);
-  registerAuthRoutes(app, store, auth, rateLimiter);
+  registerAuthRoutes(app, store, users, auth, rateLimiter);
 }

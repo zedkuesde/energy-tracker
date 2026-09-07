@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
+import { requireUserId } from '../auth/hooks.js';
 import type { SqliteDatabase } from '../db.js';
 import type { EnergyEntry } from '../types.js';
 import { HttpError } from '../types.js';
@@ -19,16 +20,19 @@ export function registerEntryRoutes(
 ): void {
   const insert = db.prepare(`
     INSERT INTO energy_entries (
-      id, timestamp, energy, fatigue, desire, context, activity, created_at, updated_at
+      id, user_id, timestamp, energy, fatigue, desire, context, activity,
+      created_at, updated_at
     ) VALUES (
-      @id, @timestamp, @energy, @fatigue, @desire, @context, @activity, @created_at, @updated_at
+      @id, @user_id, @timestamp, @energy, @fatigue, @desire, @context, @activity,
+      @created_at, @updated_at
     )
   `);
 
   const selectPage = db.prepare(`
     SELECT id, timestamp, energy, fatigue, desire, context, activity, created_at, updated_at
     FROM energy_entries
-    WHERE (@from IS NULL OR timestamp >= @from)
+    WHERE user_id = @user_id
+      AND (@from IS NULL OR timestamp >= @from)
       AND (@to IS NULL OR timestamp <= @to)
     ORDER BY timestamp DESC, id DESC
     LIMIT @limit OFFSET @offset
@@ -37,14 +41,15 @@ export function registerEntryRoutes(
   const countPage = db.prepare(`
     SELECT COUNT(*) AS total
     FROM energy_entries
-    WHERE (@from IS NULL OR timestamp >= @from)
+    WHERE user_id = @user_id
+      AND (@from IS NULL OR timestamp >= @from)
       AND (@to IS NULL OR timestamp <= @to)
   `);
 
   const selectById = db.prepare(`
     SELECT id, timestamp, energy, fatigue, desire, context, activity, created_at, updated_at
     FROM energy_entries
-    WHERE id = @id
+    WHERE id = @id AND user_id = @user_id
   `);
 
   const updateById = db.prepare(`
@@ -57,16 +62,16 @@ export function registerEntryRoutes(
       context = @context,
       activity = @activity,
       updated_at = @updated_at
-    WHERE id = @id
+    WHERE id = @id AND user_id = @user_id
   `);
 
   const deleteById = db.prepare(`
     DELETE FROM energy_entries
-    WHERE id = @id
+    WHERE id = @id AND user_id = @user_id
   `);
 
-  function getEntryOrThrow(id: string): EnergyEntry {
-    const row = selectById.get({ id }) as EntryRow | undefined;
+  function getEntryOrThrow(id: string, userId: string): EnergyEntry {
+    const row = selectById.get({ id, user_id: userId }) as EntryRow | undefined;
     if (!row) {
       throw new HttpError(404, 'not_found', 'Entrée introuvable.');
     }
@@ -74,6 +79,7 @@ export function registerEntryRoutes(
   }
 
   app.post('/api/entries', async (request, reply) => {
+    const userId = requireUserId(request);
     const input = parseCreateEntryBody(request.body);
     const now = new Date().toISOString();
     const entry: EnergyEntry = {
@@ -89,7 +95,7 @@ export function registerEntryRoutes(
     };
 
     try {
-      insert.run(entry);
+      insert.run({ ...entry, user_id: userId });
     } catch (error) {
       if (
         error instanceof Error &&
@@ -108,15 +114,18 @@ export function registerEntryRoutes(
   });
 
   app.get('/api/entries', async (request, reply) => {
+    const userId = requireUserId(request);
     const query = request.query as Record<string, string | undefined>;
     const parsed = parseListEntriesQuery(query);
     const rows = selectPage.all({
+      user_id: userId,
       from: parsed.from,
       to: parsed.to,
       limit: parsed.limit,
       offset: parsed.offset,
     }) as EntryRow[];
     const { total } = countPage.get({
+      user_id: userId,
       from: parsed.from,
       to: parsed.to,
     }) as { total: number };
@@ -132,16 +141,18 @@ export function registerEntryRoutes(
   });
 
   app.get('/api/entries/:id', async (request, reply) => {
+    const userId = requireUserId(request);
     const { id: rawId } = request.params as { id?: string };
     const id = parseEntryId(rawId);
-    const entry = getEntryOrThrow(id);
+    const entry = getEntryOrThrow(id, userId);
     return reply.send({ data: entry });
   });
 
   app.patch('/api/entries/:id', async (request, reply) => {
+    const userId = requireUserId(request);
     const { id: rawId } = request.params as { id?: string };
     const id = parseEntryId(rawId);
-    const existing = getEntryOrThrow(id);
+    const existing = getEntryOrThrow(id, userId);
     const patch = parsePatchEntryBody(request.body);
     const merged = applyEntryPatch(existing, patch);
     const updated_at = new Date().toISOString();
@@ -155,6 +166,7 @@ export function registerEntryRoutes(
     try {
       const result = updateById.run({
         id: entry.id,
+        user_id: userId,
         timestamp: entry.timestamp,
         energy: entry.energy,
         fatigue: entry.fatigue,
@@ -187,10 +199,11 @@ export function registerEntryRoutes(
   });
 
   app.delete('/api/entries/:id', async (request, reply) => {
+    const userId = requireUserId(request);
     const { id: rawId } = request.params as { id?: string };
     const id = parseEntryId(rawId);
-    getEntryOrThrow(id);
-    const result = deleteById.run({ id });
+    getEntryOrThrow(id, userId);
+    const result = deleteById.run({ id, user_id: userId });
     if (result.changes !== 1) {
       throw new HttpError(404, 'not_found', 'Entrée introuvable.');
     }

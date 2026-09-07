@@ -19,6 +19,7 @@
     "test:client": "vitest run",
     "test:watch": "tsx --test --watch src/server/**/*.test.ts",
     "test:client:watch": "vitest",
+    "create-user": "node scripts/run-create-user.mjs",
     "migrate": "node scripts/run-migrate.mjs",
     "auth:hash": "tsx scripts/auth-hash.ts",
     "auth:secret": "tsx scripts/auth-secret.ts"

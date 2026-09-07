@@ -10,12 +10,11 @@ const DEFAULT_SESSION_TTL_SECONDS = 1_209_600;
 const MIN_SESSION_SECRET_LENGTH = 32;
 
 export const AUTH_CONFIG_ERROR =
-  'Configuration d’authentification invalide : créez .env depuis .env.example et définissez AUTH_PASSWORD_HASH ainsi que AUTH_SESSION_SECRET.';
+  'Configuration d’authentification invalide : créez .env depuis .env.example et définissez AUTH_SESSION_SECRET.';
 
 export const SESSION_COOKIE_NAME = 'energy_tracker_session';
 
 export type AuthConfig = {
-  passwordHash: string;
   sessionSecret: string;
   cookieSecure: boolean;
   sessionTtlSeconds: number;
@@ -130,18 +129,13 @@ function parseSessionTtl(value: string | undefined): number {
 export function parseAuthConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): AuthConfig {
-  const passwordHash = env.AUTH_PASSWORD_HASH?.trim() ?? '';
   const sessionSecret = env.AUTH_SESSION_SECRET?.trim() ?? '';
 
-  if (
-    !passwordHash.startsWith('$argon2id$') ||
-    sessionSecret.length < MIN_SESSION_SECRET_LENGTH
-  ) {
+  if (sessionSecret.length < MIN_SESSION_SECRET_LENGTH) {
     throw new Error(AUTH_CONFIG_ERROR);
   }
 
   return {
-    passwordHash,
     sessionSecret,
     cookieSecure: parseRequiredBoolean(env.AUTH_COOKIE_SECURE, false),
     sessionTtlSeconds: parseSessionTtl(env.AUTH_SESSION_TTL_SECONDS),

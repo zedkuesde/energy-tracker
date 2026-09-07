@@ -37,6 +37,7 @@ export class HttpError extends Error {
 declare module 'fastify' {
   interface FastifyRequest {
     sessionId?: string;
+    userId?: string;
   }
   interface FastifyInstance {
     sqlite: import('./db.js').SqliteDatabase;

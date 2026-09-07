@@ -4,6 +4,7 @@ import { registerAuth } from './auth/register.js';
 import { config, parseAuthConfig, type AuthConfig } from './config.js';
 import { openDatabase } from './db.js';
 import { runMigrations } from './migrate.js';
+import type { MigrationOptions } from './migrate-multi-account.js';
 import { registerEntryRoutes } from './routes/entries.js';
 import { registerHealthRoute } from './routes/health.js';
 import { HttpError } from './types.js';
@@ -11,6 +12,7 @@ import { HttpError } from './types.js';
 export type BuildAppOptions = {
   databasePath: string;
   applyMigrations?: boolean;
+  migration?: MigrationOptions;
   logger?: boolean;
   auth?: AuthConfig;
 };
@@ -21,7 +23,7 @@ export async function buildApp(
   const auth = options.auth ?? parseAuthConfig();
   const db = openDatabase(options.databasePath);
   if (options.applyMigrations) {
-    runMigrations(db);
+    runMigrations(db, options.migration);
   }
 
   const app = Fastify({

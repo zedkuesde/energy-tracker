@@ -10,19 +10,22 @@ describe('api auth', () => {
     vi.unstubAllGlobals();
   });
 
-  test('login envoie le mot de passe en JSON same-origin', async () => {
+  test('login envoie l’email et le mot de passe en JSON same-origin', async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ data: { authenticated: true } }),
     } as Response);
 
-    await login('secret-de-test');
+    await login('lucas@example.test', 'secret-de-test');
     expect(fetch).toHaveBeenCalledWith('/api/auth/login', {
       credentials: 'same-origin',
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'secret-de-test' }),
+      body: JSON.stringify({
+        email: 'lucas@example.test',
+        password: 'secret-de-test',
+      }),
     });
   });
 

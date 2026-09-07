@@ -3,17 +3,18 @@ import type { SqliteDatabase } from '../db.js';
 
 export type SessionRow = {
   id: string;
+  user_id: string;
   created_at: string;
   expires_at: string;
 };
 
 export function createSessionStore(db: SqliteDatabase) {
   const insert = db.prepare(`
-    INSERT INTO sessions (id, created_at, expires_at)
-    VALUES (@id, @created_at, @expires_at)
+    INSERT INTO sessions (id, user_id, created_at, expires_at)
+    VALUES (@id, @user_id, @created_at, @expires_at)
   `);
   const select = db.prepare(`
-    SELECT id, created_at, expires_at
+    SELECT id, user_id, created_at, expires_at
     FROM sessions
     WHERE id = ?
   `);
@@ -24,10 +25,11 @@ export function createSessionStore(db: SqliteDatabase) {
   `);
 
   return {
-    create(ttlSeconds: number): SessionRow {
+    create(userId: string, ttlSeconds: number): SessionRow {
       const now = new Date();
       const row: SessionRow = {
         id: randomBytes(32).toString('hex'),
+        user_id: userId,
         created_at: now.toISOString(),
         expires_at: new Date(now.getTime() + ttlSeconds * 1000).toISOString(),
       };

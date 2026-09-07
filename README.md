@@ -65,7 +65,7 @@ Générer `AUTH_SESSION_SECRET` (32 octets aléatoires en hexadécimal) :
 npm run auth:secret
 ```
 
-Coller les valeurs dans `.env`. En local, garder :
+Coller les valeurs dans `.env`, ainsi que `AUTH_OWNER_EMAIL` (email du compte propriétaire, jamais hardcodé). En local, garder :
 
 ```dotenv
 AUTH_COOKIE_SECURE=false
@@ -81,13 +81,13 @@ npm run migrate
 npm run dev
 ```
 
-`npm run dev` lance Vite et Fastify ensemble. Sans `AUTH_PASSWORD_HASH` et `AUTH_SESSION_SECRET` valides, le serveur refuse de démarrer.
+`npm run migrate` a besoin de `AUTH_OWNER_EMAIL` et de `AUTH_PASSWORD_HASH` **uniquement** pour créer le compte propriétaire (migration `003_multi_account`). `npm run dev` lance Vite et Fastify ensemble. Sans `AUTH_SESSION_SECRET` valide, le serveur refuse de démarrer. Après la migration 003, `AUTH_PASSWORD_HASH` n’est plus lu au login.
 
 Vérifier login / logout :
 
 - ouvrir [http://localhost:5173/login](http://localhost:5173/login) ;
-- se connecter avec le mot de passe correspondant au hash ;
-- `/`, `/history` et `/charts` doivent être accessibles ;
+- se connecter avec l’email du compte et le mot de passe correspondant au hash utilisé à la migration (ou créé via `create-user`) ;
+- `/`, `/history` et `/charts` doivent être accessibles et ne montrer que les entrées de ce compte ;
 - `GET /api/entries` sans cookie doit renvoyer `401` ;
 - « Se déconnecter » ramène à `/login` ;
 - un nouvel appel à `/api/entries` doit encore renvoyer `401`.
@@ -122,9 +122,9 @@ API disponible :
 
 `limit` vaut 50 par défaut et 100 au maximum. Une `limit` supérieure à 100 est refusée (`400`). `offset` doit être un entier ≥ 0. `from` et `to` sont inclusifs.
 
-L’identifiant `:id` doit être un UUID v4. Un identifiant mal formé vaut `400`. Une entrée absente vaut `404`.
+L’identifiant `:id` doit être un UUID v4. Un identifiant mal formé vaut `400`. Une entrée absente **ou appartenant à un autre compte** vaut `404` (`Entrée introuvable.`). Le serveur rattache et filtre toujours par l’utilisateur de session ; un `userId` / `user_id` envoyé par le client est refusé (`400`). Il n’y a pas d’inscription publique.
 
-`PATCH` n’accepte que `timestamp`, `energy`, `fatigue`, `desire`, `context` et `activity`. Un champ à `null` retire `desire`, `context` ou `activity`. `id`, `created_at` et `updated_at` ne sont pas modifiables. `updated_at` est mis à jour côté serveur uniquement après un PATCH réussi. L’interface d’édition n’envoie jamais `timestamp` : la date et l’heure restent affichées en lecture seule dans `Europe/Paris`.
+`POST` refuse les champs inconnus (`userId`, `user_id`, `id`, etc.). `PATCH` n’accepte que `timestamp`, `energy`, `fatigue`, `desire`, `context` et `activity`. Un champ à `null` retire `desire`, `context` ou `activity`. `id`, `created_at` et `updated_at` ne sont pas modifiables. `updated_at` est mis à jour côté serveur uniquement après un PATCH réussi. L’interface d’édition n’envoie jamais `timestamp` : la date et l’heure restent affichées en lecture seule dans `Europe/Paris`.
 
 Les graphes n’utilisent pas de route `/api/stats`. Ils relisent `GET /api/entries` avec `from` / `to`, page par page (`limit=100`), jusqu’à avoir toutes les entrées de la période, une page vide, ou 1 000 entrées. Au-delà, un message indique que la vue ne peut pas charger davantage.
 
@@ -147,9 +147,17 @@ Après un clone ou un changement de machine :
 npm run migrate
 ```
 
-Les migrations sont versionnées dans `migrations/`. Une migration déjà appliquée n’est pas rejouée. Aucune migration destructive n’est exécutée automatiquement.
+Les migrations sont versionnées dans `migrations/` (fichiers SQL) et, pour le multi-compte, via l’étape programmatique `003_multi_account`. Une migration déjà appliquée n’est pas rejouée. Aucune migration destructive n’est exécutée automatiquement.
 
-Les sessions sont stockées dans SQLite (table `sessions`). Elles disparaissent si la base est supprimée. Une session expirée est refusée, supprimée, et le cookie est effacé. Le logout supprime la session côté serveur.
+La table `users` stocke email normalisé et `password_hash` Argon2id. `is_owner` marque le compte propriétaire unique ; il n’est jamais exposé par HTTP et ne sert pas à autoriser les entrées. Les sessions sont liées à `user_id`. La migration 003 recrée `sessions` : tout le monde doit se reconnecter. Une session expirée est refusée, supprimée, et le cookie est effacé. Le logout détruit uniquement la session du cookie courant.
+
+Créer un compte supplémentaire (jamais via HTTP) :
+
+```bash
+docker compose exec -it energy-tracker npm run create-user
+```
+
+En local hors Docker : `npm run create-user` (TTY obligatoire). Email, mot de passe (12 à 1024 caractères) et confirmation. Le mot de passe n’est ni affiché, ni passé en argument, ni stocké en clair.
 
 La limitation des tentatives de connexion (5 échecs / 15 minutes / IP) est en mémoire : elle est réinitialisée au redémarrage du process.
 
@@ -184,8 +192,9 @@ Copier `.env.example` vers `.env`. Ne jamais y mettre de secret réel dans Git.
 - `APP_PORT` — port Fastify (défaut `3000`)
 - `APP_HOST` — interface d’écoute (défaut `127.0.0.1` en local). En Docker, Compose force `0.0.0.0` pour que Caddy (sur l’hôte) ou `127.0.0.1:3020` puissent joindre le conteneur.
 - `DATABASE_PATH` — chemin SQLite (défaut `./data/energy-tracker.sqlite` ; en Docker `/data/energy-tracker.sqlite`)
-- `AUTH_PASSWORD_HASH` — hash Argon2id du mot de passe unique (obligatoire)
-- `AUTH_SESSION_SECRET` — secret long et aléatoire pour signer le cookie (obligatoire, au moins 32 caractères)
+- `AUTH_SESSION_SECRET` — secret long et aléatoire pour signer le cookie (obligatoire au démarrage, au moins 32 caractères)
+- `AUTH_OWNER_EMAIL` — email du compte propriétaire Lucas, **uniquement pour la migration `003_multi_account`**. Jamais hardcodé, jamais committé.
+- `AUTH_PASSWORD_HASH` — hash Argon2id du mot de passe actuel de Lucas, **uniquement pour la migration `003_multi_account`** (copie vers `users.password_hash`). Après 003, ce hash n’est plus utilisé au login. Le modifier dans `.env` ne change pas le mot de passe.
 - `AUTH_COOKIE_SECURE` — `false` en HTTP local, `true` uniquement en production HTTPS. Contrôle seulement l’attribut `Secure` du cookie. Derrière HTTPS, `true` est obligatoire.
 - `AUTH_SESSION_TTL_SECONDS` — durée de session en secondes (défaut `1209600`, soit 14 jours)
 - `TRUST_PROXY` — `false` en développement local. Ne pas le lier à `AUTH_COOKIE_SECURE`.
@@ -209,46 +218,46 @@ Garde-fous Compose : `init: true`, `no-new-privileges`, `stop_grace_period: 20s`
 
 ```bash
 cp .env.example .env
-# remplir AUTH_PASSWORD_HASH et AUTH_SESSION_SECRET, sans les mettre dans Git
+# remplir AUTH_OWNER_EMAIL, AUTH_PASSWORD_HASH (pour 003) et AUTH_SESSION_SECRET
 # garder AUTH_COOKIE_SECURE=false et TRUST_PROXY=false en HTTP local
 docker compose build
 docker compose stop energy-tracker
-docker compose run --rm energy-tracker npm run migrate
+docker compose run --rm --no-deps energy-tracker npm run migrate
 docker compose up -d
 docker compose ps
 docker compose logs -f energy-tracker
 curl -i http://127.0.0.1:3020/health
 ```
 
-
-
 ### Mise à jour sur le VPS
 
 Ne jamais utiliser `docker compose down -v` : cette commande supprimerait le volume nommé `energy_tracker_data` et donc la base SQLite.
 
+`docker compose run` hérite du volume `energy_tracker_data:/data` et de `DATABASE_PATH=/data/energy-tracker.sqlite`. Il n’expose pas `127.0.0.1:3020` (pas de flag `--no-ports` : il n’existe pas en Compose v2).
+
+Avant d’appliquer `003_multi_account` en production : ajouter `AUTH_OWNER_EMAIL` dans `.env` (chmod 600), conserver `AUTH_PASSWORD_HASH` le temps de la migration, puis sauvegarder.
+
 ```bash
+sh scripts/docker-backup.sh
 git pull --ff-only
 docker compose build
 docker compose stop energy-tracker
-docker compose run --rm energy-tracker npm run migrate
+docker compose run --rm --no-deps energy-tracker npm run migrate
 docker compose up -d
 docker compose ps
 docker compose logs --tail=100 energy-tracker
+docker compose exec -it energy-tracker npm run create-user
 ```
-
-
 
 ### Validation après déploiement
 
 - `curl -i http://127.0.0.1:3020/health` et healthcheck Compose (`docker compose ps`)
 - accès HTTPS via le reverse proxy (hors de ce dépôt)
-- page `/login`
-- connexion
-- création d’une entrée
+- page `/login` (email + mot de passe)
+- connexion du compte propriétaire : l’historique existant est toujours là
+- un second compte ne voit pas ces entrées
 - `docker compose restart energy-tracker` (sans `-v`) puis vérification que l’entrée existe encore
 - déconnexion et refus de l’API sans session (`401`)
-
-
 
 ### Reverse proxy (prérequis uniquement)
 
@@ -301,7 +310,7 @@ Procédure de restauration :
 5. redémarrer ;
 6. vérifier `/health` puis la page de login.
 
-Ne jamais utiliser `docker compose down -v`.
+Ne jamais utiliser `docker compose down -v`. Un rollback de la migration 003 exige **à la fois** `scripts/docker-restore.sh` vers la sauvegarde pré-003 **et** le redéploiement de l’image/commit d’avant le multi-compte.
 
 ## Note pour les sliders
 
@@ -317,4 +326,4 @@ L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retir
 
 ## État actuel
 
-Jalon 5B : image Docker de production, Compose (port hôte `127.0.0.1:3020` → conteneur `3000`), volume SQLite persistant, migrations manuelles, sauvegarde/restauration documentées. Pas de déploiement VPS, reverse proxy, PWA ni notifications.
+Jalon Multi-compte V1 : comptes isolés (email + mot de passe), migration 003 vers un propriétaire, CLI `create-user`, pas d’inscription publique. PWA et notifications restent hors périmètre.

@@ -6,6 +6,9 @@ import type { AuthConfig } from './config.js';
 import { SESSION_COOKIE_NAME } from './config.js';
 
 export const TEST_PASSWORD = 'local-test-only';
+export const TEST_OWNER_EMAIL = 'lucas@example.test';
+export const TEST_FRIEND_EMAIL = 'amie@example.test';
+export const TEST_FRIEND_PASSWORD = 'friend-test-only';
 
 let cachedHash: string | undefined;
 
@@ -18,7 +21,6 @@ export async function testAuthConfig(
   overrides: Partial<AuthConfig> = {},
 ): Promise<AuthConfig> {
   return {
-    passwordHash: await testPasswordHash(),
     sessionSecret: randomBytes(32).toString('hex'),
     cookieSecure: false,
     sessionTtlSeconds: 1_209_600,
@@ -33,6 +35,10 @@ export async function createTestApp(
   return buildApp({
     databasePath: ':memory:',
     applyMigrations: true,
+    migration: {
+      ownerEmail: TEST_OWNER_EMAIL,
+      ownerPasswordHash: await testPasswordHash(),
+    },
     logger: false,
     auth: await testAuthConfig(overrides),
   });
@@ -50,11 +56,17 @@ export function sessionCookieValue(response: {
   return cookie.value;
 }
 
-export async function loginCookie(app: FastifyInstance): Promise<string> {
+export async function loginCookie(
+  app: FastifyInstance,
+  credentials: { email?: string; password?: string } = {},
+): Promise<string> {
   const response = await app.inject({
     method: 'POST',
     url: '/api/auth/login',
-    payload: { password: TEST_PASSWORD },
+    payload: {
+      email: credentials.email ?? TEST_OWNER_EMAIL,
+      password: credentials.password ?? TEST_PASSWORD,
+    },
   });
   if (response.statusCode !== 200) {
     throw new Error(`Login de test échoué (${response.statusCode}).`);

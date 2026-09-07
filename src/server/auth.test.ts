@@ -10,6 +10,7 @@ import {
   createTestApp,
   loginCookie,
   sessionCookieValue,
+  TEST_OWNER_EMAIL,
   TEST_PASSWORD,
 } from './test-support.js';
 
@@ -26,16 +27,25 @@ function assertNoSecretLeak(payload: string): void {
 }
 
 describe('parseAuthConfig', () => {
-  test('refuse un hash ou un secret manquant sans révéler de valeur', () => {
+  test('refuse un secret manquant sans révéler de valeur', () => {
     assert.throws(
       () =>
         parseAuthConfig({
-          AUTH_PASSWORD_HASH: '',
-          AUTH_SESSION_SECRET: 'x'.repeat(32),
+          AUTH_SESSION_SECRET: '',
         }),
       (error: unknown) =>
         error instanceof Error && error.message === AUTH_CONFIG_ERROR,
     );
+  });
+
+  test('accepte une config sans AUTH_PASSWORD_HASH', () => {
+    const parsed = parseAuthConfig({
+      AUTH_SESSION_SECRET: 'x'.repeat(32),
+      AUTH_COOKIE_SECURE: 'false',
+      TRUST_PROXY: 'false',
+    });
+    assert.equal(parsed.sessionSecret.length, 32);
+    assert.equal(parsed.cookieSecure, false);
   });
 });
 
@@ -60,7 +70,7 @@ describe('authentification', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/auth/login',
-      payload: { password: TEST_PASSWORD },
+      payload: { email: TEST_OWNER_EMAIL, password: TEST_PASSWORD },
     });
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.json(), { data: { authenticated: true } });
@@ -82,7 +92,7 @@ describe('authentification', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/auth/login',
-      payload: { password: WRONG_PASSWORD },
+      payload: { email: TEST_OWNER_EMAIL, password: WRONG_PASSWORD },
     });
     assert.equal(response.statusCode, 401);
     assert.deepEqual(response.json(), {
@@ -109,8 +119,14 @@ describe('authentification', () => {
       url: '/api/auth/login',
       payload: { password: 12 },
     });
+    const passwordOnly = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { password: TEST_PASSWORD },
+    });
     assert.equal(missing.statusCode, 400);
     assert.equal(wrongType.statusCode, 400);
+    assert.equal(passwordOnly.statusCode, 400);
     assert.equal(missing.json().error.code, 'validation_error');
     assertNoSecretLeak(missing.payload);
   });
@@ -253,7 +269,7 @@ describe('authentification', () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/auth/login',
-      payload: { password: TEST_PASSWORD },
+      payload: { email: TEST_OWNER_EMAIL, password: TEST_PASSWORD },
     });
     const cookie = sessionCookieValue(login);
     app.sqlite
@@ -294,7 +310,7 @@ describe('authentification', () => {
       const failed = await app.inject({
         method: 'POST',
         url: '/api/auth/login',
-        payload: { password: WRONG_PASSWORD },
+        payload: { email: TEST_OWNER_EMAIL, password: WRONG_PASSWORD },
       });
       assert.equal(failed.statusCode, 401);
       assertNoSecretLeak(failed.payload);
@@ -303,7 +319,7 @@ describe('authentification', () => {
     const limited = await app.inject({
       method: 'POST',
       url: '/api/auth/login',
-      payload: { password: WRONG_PASSWORD },
+      payload: { email: TEST_OWNER_EMAIL, password: WRONG_PASSWORD },
     });
     assert.equal(limited.statusCode, 429);
     assert.deepEqual(limited.json(), {
@@ -314,6 +330,74 @@ describe('authentification', () => {
     });
     assertNoSecretLeak(limited.payload);
   });
+
+  test('email inconnu et mauvais mot de passe renvoient le même 401', async () => {
+    const unknownEmail = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'inconnu@example.test', password: TEST_PASSWORD },
+    });
+    const wrongPassword = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: TEST_OWNER_EMAIL, password: WRONG_PASSWORD },
+    });
+    assert.equal(unknownEmail.statusCode, 401);
+    assert.equal(wrongPassword.statusCode, 401);
+    assert.deepEqual(unknownEmail.json(), wrongPassword.json());
+    assert.deepEqual(unknownEmail.json(), {
+      error: {
+        code: 'invalid_credentials',
+        message: 'Identifiants invalides.',
+      },
+    });
+    assertNoSecretLeak(unknownEmail.payload);
+    assert.equal(unknownEmail.payload.includes('inconnu@example.test'), false);
+  });
+
+  test('la session créée est liée au userId du compte connecté', async () => {
+    const cookie = await loginCookie(app);
+    const owner = app.sqlite
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .get(TEST_OWNER_EMAIL) as { id: string };
+    const session = app.sqlite
+      .prepare('SELECT user_id FROM sessions')
+      .get() as { user_id: string };
+    assert.equal(session.user_id, owner.id);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: cookieHeader(cookie),
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal('userId' in response.json().data, false);
+    assert.equal('is_owner' in response.json().data, false);
+  });
+
+  test('logout détruit uniquement la session du cookie courant', async () => {
+    const first = await loginCookie(app);
+    const second = await loginCookie(app);
+    const logout = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: cookieHeader(first),
+    });
+    assert.equal(logout.statusCode, 204);
+
+    const afterFirst = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: cookieHeader(first),
+    });
+    const afterSecond = await app.inject({
+      method: 'GET',
+      url: '/api/auth/session',
+      headers: cookieHeader(second),
+    });
+    assert.equal(afterFirst.statusCode, 401);
+    assert.equal(afterSecond.statusCode, 200);
+  });
 });
 
 describe('cookie Secure et TTL', () => {
@@ -323,7 +407,7 @@ describe('cookie Secure et TTL', () => {
       const response = await secureApp.inject({
         method: 'POST',
         url: '/api/auth/login',
-        payload: { password: TEST_PASSWORD },
+        payload: { email: TEST_OWNER_EMAIL, password: TEST_PASSWORD },
       });
       const cookie = response.cookies.find(
         (item) => item.name === SESSION_COOKIE_NAME,
@@ -340,7 +424,7 @@ describe('cookie Secure et TTL', () => {
       const response = await shortApp.inject({
         method: 'POST',
         url: '/api/auth/login',
-        payload: { password: TEST_PASSWORD },
+        payload: { email: TEST_OWNER_EMAIL, password: TEST_PASSWORD },
       });
       const cookie = response.cookies.find(
         (item) => item.name === SESSION_COOKIE_NAME,

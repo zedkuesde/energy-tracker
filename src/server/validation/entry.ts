@@ -4,6 +4,15 @@ import { parseUtcInstant } from './timestamp.js';
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const CREATE_FIELDS = new Set([
+  'timestamp',
+  'energy',
+  'fatigue',
+  'desire',
+  'context',
+  'activity',
+]);
+
 const PATCH_FIELDS = new Set([
   'timestamp',
   'energy',
@@ -92,6 +101,15 @@ export function parseCreateEntryBody(body: unknown): CreateEntryInput {
   }
 
   const payload = body as Record<string, unknown>;
+  for (const key of Object.keys(payload)) {
+    if (!CREATE_FIELDS.has(key)) {
+      throw new HttpError(
+        400,
+        'validation_error',
+        'Le corps contient un champ non autorisé.',
+      );
+    }
+  }
 
   if (!('energy' in payload)) {
     throw new HttpError(400, 'validation_error', 'energy est obligatoire.');

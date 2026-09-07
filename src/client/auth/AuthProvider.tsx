@@ -33,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (password: string) => {
-    await loginRequest(password);
+  const login = useCallback(async (email: string, password: string) => {
+    await loginRequest(email, password);
     setStatus('authenticated');
   }, []);
 

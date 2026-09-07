@@ -55,7 +55,16 @@ describe('LoginPage', () => {
     expect(
       screen.getByRole('img', { name: 'Energy Tracker' }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toHaveAttribute(
+      'autocomplete',
+      'email',
+    );
     expect(screen.getByLabelText('Mot de passe')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mot de passe')).toHaveAttribute(
+      'autocomplete',
+      'current-password',
+    );
   });
 
   test('soumission réussie appelle login puis redirige vers /', async () => {
@@ -76,6 +85,7 @@ describe('LoginPage', () => {
 
     renderLogin();
     await screen.findByRole('heading', { name: 'Accès à Energy Tracker' });
+    await user.type(screen.getByLabelText('Email'), 'lucas@example.test');
     await user.type(screen.getByLabelText('Mot de passe'), 'secret-de-test');
     await user.click(screen.getByRole('button', { name: 'Se connecter' }));
 
@@ -113,7 +123,8 @@ describe('LoginPage', () => {
     });
 
     renderLogin();
-    await screen.findByLabelText('Mot de passe');
+    await screen.findByLabelText('Email');
+    await user.type(screen.getByLabelText('Email'), 'lucas@example.test');
     await user.type(screen.getByLabelText('Mot de passe'), 'wrong');
     await user.click(screen.getByRole('button', { name: 'Se connecter' }));
 
@@ -141,7 +152,8 @@ describe('LoginPage', () => {
     });
 
     renderLogin();
-    await screen.findByLabelText('Mot de passe');
+    await screen.findByLabelText('Email');
+    await user.type(screen.getByLabelText('Email'), 'lucas@example.test');
     await user.type(screen.getByLabelText('Mot de passe'), 'secret-de-test');
     const submit = screen.getByRole('button', { name: 'Se connecter' });
     await user.click(submit);
@@ -163,7 +175,8 @@ describe('LoginPage', () => {
   test('aucun mot de passe n’est enregistré dans le stockage local', async () => {
     const user = userEvent.setup();
     renderLogin();
-    await screen.findByLabelText('Mot de passe');
+    await screen.findByLabelText('Email');
+    await user.type(screen.getByLabelText('Email'), 'lucas@example.test');
     await user.type(screen.getByLabelText('Mot de passe'), 'secret-de-test');
 
     expect(localStorage.length).toBe(0);

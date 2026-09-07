@@ -24,13 +24,22 @@ test('backup produit un fichier SQLite unique restaurable', async () => {
 
   const db = openDatabase(sourcePath);
   try {
-    runMigrations(db);
+    runMigrations(db, {
+      ownerEmail: 'owner@example.test',
+      ownerPasswordHash:
+        '$argon2id$v=19$m=65536,t=3,p=4$dGVzdHNhbHRmb3JtaWdyYXRpb24$dGVzdGhhc2hmb3JtaWdyYXRpb250ZXN0',
+    });
+    const owner = db
+      .prepare('SELECT id FROM users WHERE is_owner = 1')
+      .get() as { id: string };
     db.prepare(
       `INSERT INTO energy_entries (
-        id, timestamp, energy, fatigue, desire, context, activity, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, user_id, timestamp, energy, fatigue, desire, context, activity,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      owner.id,
       '2026-09-06T15:45:00.000Z',
       7,
       3,

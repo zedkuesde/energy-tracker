@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { AuthConfig } from '../config.js';
 import { HttpError } from '../types.js';
-import { verifyPassword } from './password.js';
+import { MAX_PASSWORD_LENGTH, normalizeEmail } from '../validation/account.js';
+import { UNKNOWN_EMAIL_DUMMY_HASH, verifyPassword } from './password.js';
 import type { LoginRateLimiter } from './rate-limit.js';
 import {
   clearSessionCookie,
@@ -11,11 +12,30 @@ import {
   UNAUTHENTICATED_BODY,
 } from './hooks.js';
 import type { SessionStore } from './sessions.js';
+import type { UserStore } from './users.js';
 
-const MAX_PASSWORD_LENGTH = 1024;
+const INVALID_CREDENTIALS = {
+  error: {
+    code: 'invalid_credentials',
+    message: 'Identifiants invalides.',
+  },
+} as const;
 
-function parseLoginPassword(body: unknown): string {
+type LoginBody = {
+  email: string;
+  password: string;
+};
+
+function parseLoginBody(body: unknown): LoginBody {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    throw new HttpError(
+      400,
+      'validation_error',
+      'Le corps de la requête est invalide.',
+    );
+  }
+
+  if (!('email' in body) || typeof body.email !== 'string') {
     throw new HttpError(
       400,
       'validation_error',
@@ -42,12 +62,22 @@ function parseLoginPassword(body: unknown): string {
     );
   }
 
-  return body.password;
+  const email = normalizeEmail(body.email);
+  if (!email) {
+    throw new HttpError(
+      400,
+      'validation_error',
+      'Le corps de la requête est invalide.',
+    );
+  }
+
+  return { email, password: body.password };
 }
 
 export function registerAuthRoutes(
   app: FastifyInstance,
   store: SessionStore,
+  users: UserStore,
   auth: AuthConfig,
   rateLimiter: LoginRateLimiter,
 ): void {
@@ -64,21 +94,18 @@ export function registerAuthRoutes(
       });
     }
 
-    const password = parseLoginPassword(request.body);
-    const matches = await verifyPassword(auth.passwordHash, password);
-    if (!matches) {
+    const { email, password } = parseLoginBody(request.body);
+    const user = users.findByEmail(email);
+    const hash = user?.password_hash ?? UNKNOWN_EMAIL_DUMMY_HASH;
+    const matches = await verifyPassword(hash, password);
+    if (!user || !matches) {
       rateLimiter.recordFailure(ip);
-      return reply.status(401).send({
-        error: {
-          code: 'invalid_credentials',
-          message: 'Identifiants invalides.',
-        },
-      });
+      return reply.status(401).send(INVALID_CREDENTIALS);
     }
 
     rateLimiter.reset(ip);
     store.deleteExpired();
-    const session = store.create(auth.sessionTtlSeconds);
+    const session = store.create(user.id, auth.sessionTtlSeconds);
     setSessionCookie(reply, auth, session.id);
     return reply.status(200).send({
       data: { authenticated: true },
@@ -97,8 +124,8 @@ export function registerAuthRoutes(
 
   app.get('/api/auth/session', async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    const sessionId = await resolveActiveSession(request, reply, store, auth);
-    if (!sessionId) {
+    const session = await resolveActiveSession(request, reply, store, auth);
+    if (!session) {
       return reply.status(401).send(UNAUTHENTICATED_BODY);
     }
     return reply.status(200).send({

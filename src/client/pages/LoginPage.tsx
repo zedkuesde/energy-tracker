@@ -22,6 +22,7 @@ function errorMessage(error: unknown): string {
 export function LoginPage() {
   const { status, login } = useAuth();
   const location = useLocation();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +49,8 @@ export function LoginPage() {
     setError(null);
 
     try {
-      await login(password);
+      await login(email, password);
+      setEmail('');
       setPassword('');
     } catch (caught) {
       setError(errorMessage(caught));
@@ -56,6 +58,8 @@ export function LoginPage() {
       inFlight.current = false;
     }
   }
+
+  const canSubmit = email.trim().length > 0 && password.length > 0;
 
   return (
     <div className="app-shell">
@@ -65,11 +69,26 @@ export function LoginPage() {
       <main className="app-main login-main">
         <section className="page">
           <h1>Accès à Energy Tracker</h1>
-          <p className="lede">Entre le mot de passe pour continuer.</p>
+          <p className="lede">Entre ton email et ton mot de passe.</p>
           <form
             className="log-form"
             onSubmit={(event) => void handleSubmit(event)}
           >
+            <div className="field">
+              <label className="field-label" htmlFor="login-email">
+                Email
+              </label>
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+                className="password-input"
+              />
+            </div>
             <div className="field">
               <label className="field-label" htmlFor="login-password">
                 Mot de passe
@@ -103,7 +122,7 @@ export function LoginPage() {
             <button
               type="submit"
               className="primary-button"
-              disabled={submitting || password.length === 0}
+              disabled={submitting || !canSubmit}
             >
               {submitting ? 'Connexion…' : 'Se connecter'}
             </button>

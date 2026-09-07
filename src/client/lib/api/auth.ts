@@ -65,14 +65,14 @@ export async function fetchSession(): Promise<boolean> {
   return body.data.authenticated === true;
 }
 
-export async function login(password: string): Promise<void> {
+export async function login(email: string, password: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch('/api/auth/login', {
       ...sameOrigin,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
   } catch {
     throw new AuthRequestError('network');

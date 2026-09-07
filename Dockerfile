@@ -32,6 +32,7 @@ COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/package-lock.json ./
 COPY --from=build --chown=node:node /app/migrations ./migrations
 COPY --from=build --chown=node:node /app/scripts/run-migrate.mjs ./scripts/run-migrate.mjs
+COPY --from=build --chown=node:node /app/scripts/run-create-user.mjs ./scripts/run-create-user.mjs
 USER node
 EXPOSE 3000
 CMD ["npm", "start"]
