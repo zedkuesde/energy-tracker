@@ -41,7 +41,9 @@ export function RangeSelector({ value, onChange }: RangeSelectorProps) {
             role="radio"
             aria-checked={selected}
             tabIndex={selected ? 0 : -1}
-            className={selected ? 'chip chip-active' : 'chip'}
+            className={
+              selected ? 'range-button range-button-active' : 'range-button'
+            }
             onClick={() => {
               onChange(days);
             }}

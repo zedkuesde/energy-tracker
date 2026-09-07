@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { EnergyEntry } from '../lib/api/entries';
@@ -94,10 +94,12 @@ describe('ChartsPage', () => {
     render(<ChartsPage now={NOW} />);
 
     expect(
-      await screen.findByText(/Une observation est affichée/),
+      await screen.findByText('Une observation est affichée.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Énergie')).toBeInTheDocument();
-    expect(screen.getByText('Fatigue')).toBeInTheDocument();
+    const legend = screen.getByRole('list', { name: 'Légende' });
+    expect(within(legend).getByText('Énergie')).toBeInTheDocument();
+    expect(within(legend).getByText('Fatigue')).toBeInTheDocument();
+    expect(within(legend).queryByText('Envie')).not.toBeInTheDocument();
     expect(screen.queryByText('Envie')).not.toBeInTheDocument();
   });
 
@@ -111,10 +113,11 @@ describe('ChartsPage', () => {
 
     render(<ChartsPage now={NOW} />);
 
-    expect(await screen.findByText('Envie')).toBeInTheDocument();
+    const legend = await screen.findByRole('list', { name: 'Légende' });
+    expect(within(legend).getByText('Envie')).toBeInTheDocument();
   });
 
-  test('masque la courbe envie s’il y a moins de 2 valeurs', async () => {
+  test('masque la légende Envie s’il y a moins de 2 valeurs', async () => {
     vi.mocked(fetch).mockResolvedValue(
       ok([
         entry('a', '2026-09-06T10:00:00.000Z', { desire: 3 }),
@@ -124,8 +127,38 @@ describe('ChartsPage', () => {
 
     render(<ChartsPage now={NOW} />);
 
-    await screen.findByText('Énergie');
-    expect(screen.queryByText('Envie')).not.toBeInTheDocument();
+    const legend = await screen.findByRole('list', { name: 'Légende' });
+    expect(within(legend).getByText('Énergie')).toBeInTheDocument();
+    expect(within(legend).queryByText('Envie')).not.toBeInTheDocument();
+  });
+
+  test('détail Envie possible sans légende si une seule valeur désir', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      ok([
+        entry('a', '2026-09-06T10:00:00.000Z'),
+        entry('b', '2026-09-06T12:00:00.000Z', { desire: 7 }),
+      ]) as Response,
+    );
+
+    render(<ChartsPage now={NOW} />);
+
+    expect(await screen.findByText('Envie 7 / 10')).toBeInTheDocument();
+    const legend = screen.getByRole('list', { name: 'Légende' });
+    expect(within(legend).queryByText('Envie')).not.toBeInTheDocument();
+  });
+
+  test('n’invente pas de valeur d’envie dans le détail', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      ok([
+        entry('a', '2026-09-06T12:00:00.000Z', { energy: 5, fatigue: 2 }),
+      ]) as Response,
+    );
+
+    render(<ChartsPage now={NOW} />);
+
+    expect(await screen.findByText('Énergie 5 / 10')).toBeInTheDocument();
+    expect(screen.getByText('Fatigue 2 / 10')).toBeInTheDocument();
+    expect(screen.queryByText(/Envie/)).not.toBeInTheDocument();
   });
 
   test('affiche une erreur et permet de réessayer', async () => {

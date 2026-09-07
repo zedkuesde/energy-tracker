@@ -155,7 +155,9 @@ function EditEntryForm({
     <form className="log-form dialog-form" onSubmit={handleSubmit}>
       <p className="dialog-when">
         <span className="field-label">Date et heure</span>
-        <span>{formatParisDateTime(entry.timestamp)}</span>
+        <span className="dialog-when-value">
+          {formatParisDateTime(entry.timestamp)}
+        </span>
       </p>
       <EntryFields
         idPrefix="edit-"

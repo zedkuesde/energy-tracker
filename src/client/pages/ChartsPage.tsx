@@ -22,9 +22,6 @@ export function ChartsPage({ now }: ChartsPageProps) {
   return (
     <section className="page">
       <h1>Graphes</h1>
-      <p className="lede">
-        Énergie et fatigue dans le temps, sans interprétation automatique.
-      </p>
       <RangeSelector value={range} onChange={setRange} />
 
       {loading && entries.length === 0 ? (
@@ -48,25 +45,16 @@ export function ChartsPage({ now }: ChartsPageProps) {
       {!loading && !error && entries.length === 0 ? (
         <StatusPanel>
           <p>Aucune entrée sur cette période.</p>
-          <p className="hint">Elles apparaîtront ici après une saisie.</p>
         </StatusPanel>
       ) : null}
 
       {entries.length > 0 ? (
         <div className="chart-block">
-          <h2 className="chart-title">Observations ponctuelles</h2>
-          <p className="chart-description">
-            Chaque point est une saisie. Énergie et fatigue restent deux axes
-            indépendants. Aucune moyenne ni conseil n’est calculé.
-          </p>
           {entries.length === 1 ? (
-            <p className="hint">
-              Une observation est affichée. Plusieurs points aideront à voir une
-              évolution.
-            </p>
+            <p className="hint">Une observation est affichée.</p>
           ) : null}
           <EnergyChart points={points} showDesire={showDesire} />
-          <ul className="chart-legend">
+          <ul className="chart-legend" aria-label="Légende">
             <li>
               <span
                 className="legend-swatch legend-energy"

@@ -90,8 +90,8 @@ describe('HistoryPage', () => {
 
     const cards = await screen.findAllByRole('article');
     expect(cards).toHaveLength(2);
-    expect(cards[0]).toHaveTextContent('8 / 10');
-    expect(cards[1]).toHaveTextContent('5 / 10');
+    expect(cards[0].querySelector('.entry-energy')).toHaveTextContent('8');
+    expect(cards[1].querySelector('.entry-energy')).toHaveTextContent('5');
     expect(cards[0].compareDocumentPosition(cards[1])).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
@@ -104,7 +104,7 @@ describe('HistoryPage', () => {
 
     render(<HistoryPage />);
 
-    expect(await screen.findByText(/15 juillet 2026/)).toBeInTheDocument();
+    expect(await screen.findByText(/15 juillet/)).toBeInTheDocument();
     expect(screen.getByText(/14:00/)).toBeInTheDocument();
   });
 
@@ -124,12 +124,41 @@ describe('HistoryPage', () => {
 
     const cards = await screen.findAllByRole('article');
     expect(cards[0]).toHaveTextContent('Envie');
-    expect(cards[0]).toHaveTextContent('7 / 10');
+    expect(cards[0].querySelector('.entry-desire')).toHaveTextContent('7');
     expect(cards[0]).toHaveTextContent('Travail');
     expect(cards[0]).toHaveTextContent('Après une réunion');
+    expect(cards[0].querySelectorAll('.entry-scores > div')).toHaveLength(3);
     expect(cards[1]).not.toHaveTextContent('Envie');
+    expect(cards[1].querySelector('.entry-desire')).toBeNull();
+    expect(cards[1].querySelectorAll('.entry-scores > div')).toHaveLength(2);
+    expect(cards[1]).toHaveTextContent('Énergie');
+    expect(cards[1]).toHaveTextContent('Fatigue');
     expect(cards[1]).not.toHaveTextContent('Travail');
     expect(cards[1]).not.toHaveTextContent('Après une réunion');
+  });
+
+  test('n’affiche aucune colonne Envie lorsque desire est null', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      ok([
+        entry('bare', '2026-09-06T16:40:00.000Z', {
+          energy: 7,
+          fatigue: 4,
+          desire: null,
+        }),
+      ]) as Response,
+    );
+
+    render(<HistoryPage />);
+
+    const card = await screen.findByRole('article');
+    const scores = card.querySelector('.entry-scores');
+    expect(scores).toHaveClass('entry-scores-two');
+    expect(scores?.children).toHaveLength(2);
+    expect(within(card).queryByText('Envie')).not.toBeInTheDocument();
+    expect(card.querySelector('.entry-desire')).toBeNull();
+    expect(within(card).getByText('Énergie')).toBeInTheDocument();
+    expect(within(card).getByText('Fatigue')).toBeInTheDocument();
+    expect(card).not.toHaveTextContent('/ 10');
   });
 
   test('affiche un état vide', async () => {
@@ -208,14 +237,14 @@ describe('HistoryPage', () => {
       .mockRejectedValueOnce(new Error('offline'));
 
     render(<HistoryPage />);
-    expect(await screen.findByText('9 / 10')).toBeInTheDocument();
+    expect(await screen.findByText('9')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Charger plus' }));
 
     expect(
       await screen.findByText(/La suite n’a pas pu être chargée/),
     ).toBeInTheDocument();
-    expect(screen.getByText('9 / 10')).toBeInTheDocument();
+    expect(screen.getByText('9')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeEnabled();
   });
 
@@ -303,7 +332,9 @@ describe('HistoryPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Modifications enregistrées.',
     );
-    expect(screen.getByText('8 / 10')).toBeInTheDocument();
+    expect(
+      screen.getByRole('article').querySelector('.entry-energy'),
+    ).toHaveTextContent('8');
     const patchCall = vi
       .mocked(fetch)
       .mock.calls.find((call) => call[1]?.method === 'PATCH');

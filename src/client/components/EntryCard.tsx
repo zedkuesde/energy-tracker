@@ -1,6 +1,6 @@
 import { getActivityLabel } from '../lib/activities';
 import type { EnergyEntry } from '../lib/api/entries';
-import { formatParisDateTime } from '../lib/dates';
+import { formatParisDate, formatParisTime } from '../lib/dates';
 
 type EntryCardProps = {
   entry: EnergyEntry;
@@ -9,22 +9,29 @@ type EntryCardProps = {
 };
 
 export function EntryCard({ entry, onEdit, onDelete }: EntryCardProps) {
+  const showDesire = entry.desire !== null;
+
   return (
     <article className="entry-card">
-      <p className="entry-when">{formatParisDateTime(entry.timestamp)}</p>
-      <dl className="entry-scores">
+      <p className="entry-date">{formatParisDate(entry.timestamp)}</p>
+      <p className="entry-time">{formatParisTime(entry.timestamp)}</p>
+      <dl
+        className={
+          showDesire ? 'entry-scores' : 'entry-scores entry-scores-two'
+        }
+      >
         <div>
           <dt>Énergie</dt>
-          <dd className="entry-energy">{entry.energy} / 10</dd>
+          <dd className="entry-energy">{entry.energy}</dd>
         </div>
         <div>
           <dt>Fatigue</dt>
-          <dd className="entry-fatigue">{entry.fatigue} / 10</dd>
+          <dd className="entry-fatigue">{entry.fatigue}</dd>
         </div>
-        {entry.desire !== null ? (
+        {showDesire ? (
           <div>
             <dt>Envie</dt>
-            <dd className="entry-desire">{entry.desire} / 10</dd>
+            <dd className="entry-desire">{entry.desire}</dd>
           </div>
         ) : null}
       </dl>

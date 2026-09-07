@@ -435,7 +435,7 @@ textarea {
 }
 
 .primary-button,
-.chip,
+.range-button,
 .nav-link,
 .activity-option {
   min-height: 2.75rem;
@@ -463,25 +463,27 @@ textarea {
 
 .range-row {
   display: flex;
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
+  gap: 0.85rem;
+  margin: 0 0 1rem;
 }
 
-.chip {
-  flex: 1;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text);
+.range-button {
+  flex: 0 0 auto;
+  padding: 0.2rem 0;
+  border: 0;
+  border-radius: 0.28rem;
+  background: transparent;
+  color: var(--muted);
   font-size: 1rem;
 }
 
-.chip-active {
-  border-color: var(--accent);
-  background: var(--energy-soft);
+.range-button-active {
+  color: var(--text);
+  font-weight: 650;
+  box-shadow: inset 0 -1px 0 var(--text);
 }
 
-.chip:disabled {
+.range-button:disabled {
   opacity: 0.62;
   cursor: not-allowed;
 }
@@ -533,39 +535,84 @@ textarea:focus-visible {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0;
 }
 
 .entry-card {
-  padding: 0.85rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 0.85rem;
-  background: #fff;
+  padding: 0 0 0.35rem;
+  margin: 0 0 1.85rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
-.entry-when {
-  margin: 0 0 0.55rem;
-  font-weight: 650;
-  font-size: 1.02rem;
+.entry-card::after {
+  content: '';
+  display: block;
+  width: 2.4rem;
+  height: 1px;
+  margin-top: 1.45rem;
+  background: var(--line);
+}
+
+.entry-list li:last-child .entry-card {
+  margin-bottom: 0.4rem;
+}
+
+.entry-list li:last-child .entry-card::after {
+  display: none;
+}
+
+.entry-date {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.entry-time {
+  margin: 0.2rem 0 0.85rem;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .entry-scores {
   margin: 0;
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem 0.7rem;
+}
+
+.entry-scores-two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem 0.75rem;
+}
+
+.entry-scores > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
 }
 
 .entry-scores dt {
   margin: 0;
+  order: 1;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .entry-scores dd {
-  margin: 0.1rem 0 0;
-  font-variant-numeric: tabular-nums;
+  margin: 0;
+  order: 0;
+  font-size: 1.28rem;
   font-weight: 650;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .entry-energy {
@@ -581,7 +628,8 @@ textarea:focus-visible {
 }
 
 .entry-activity {
-  margin: 0.65rem 0 0;
+  margin: 0.95rem 0 0;
+  color: var(--activity);
   font-weight: 650;
 }
 
@@ -593,8 +641,9 @@ textarea:focus-visible {
 .entry-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1rem;
-  margin-top: 0.75rem;
+  justify-content: space-between;
+  gap: 0.2rem 1.1rem;
+  margin-top: 0.85rem;
 }
 
 .entry-actions .text-button {
@@ -615,9 +664,9 @@ textarea:focus-visible {
   width: min(calc(100% - 1.5rem), 28rem);
   max-height: min(calc(100dvh - 1.5rem), 40rem);
   margin: auto;
-  padding: 1rem 1rem 1.1rem;
+  padding: 1.25rem 1.15rem 1.35rem;
   border: 1px solid var(--line);
-  border-radius: 1rem;
+  border-radius: 0.28rem;
   background: var(--surface);
   color: var(--text);
   overflow: auto;
@@ -633,8 +682,11 @@ textarea:focus-visible {
 }
 
 .dialog-title {
-  margin: 0 0 0.65rem;
-  font-size: 1.2rem;
+  margin: 0 0 0.85rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .dialog-title:focus {
@@ -647,15 +699,23 @@ textarea:focus-visible {
 }
 
 .dialog-body p {
-  margin: 0 0 0.85rem;
+  margin: 0 0 1rem;
   color: var(--muted);
 }
 
 .dialog-when {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  margin: 0 0 0.85rem;
+  gap: 0.2rem;
+  margin: 0 0 1.1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.dialog-when-value {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
 }
 
 .dialog-form {
@@ -667,12 +727,12 @@ textarea:focus-visible {
 .dialog-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
   position: sticky;
   bottom: 0;
   background: var(--surface);
-  padding-top: 0.55rem;
+  padding-top: 0.85rem;
 }
 
 .dialog-actions .primary-button,
@@ -682,16 +742,20 @@ textarea:focus-visible {
   margin-top: 0;
 }
 
+.dialog-actions .secondary-button {
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .danger-button {
   min-height: 2.75rem;
-  border: 1px solid var(--fatigue);
-  border-radius: 0.95rem;
-  background: var(--fatigue-soft);
-  color: var(--text);
+  border: 0;
+  border-radius: 0.28rem;
+  background: var(--danger);
+  color: var(--accent-text);
   font-size: 1.05rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
+  font-weight: 650;
 }
 
 .danger-button:disabled {
@@ -708,25 +772,30 @@ textarea:focus-visible {
 .chart-block {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-}
-
-.chart-title {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 650;
-}
-
-.chart-description {
-  margin: 0;
-  color: var(--muted);
-  font-size: 1rem;
+  gap: 0.85rem;
 }
 
 .chart-frame {
   width: 100%;
   height: 280px;
-  margin-top: 0.35rem;
+  margin: 0.15rem 0 0;
+}
+
+.chart-detail {
+  margin: 0;
+}
+
+.chart-detail-when {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.chart-detail-line {
+  margin: 0.15rem 0 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-legend {
@@ -735,19 +804,20 @@ textarea:focus-visible {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem 1rem;
+  gap: 0.55rem 1.1rem;
 }
 
 .chart-legend li {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .legend-swatch {
-  width: 0.9rem;
-  height: 0.9rem;
-  border-radius: 999px;
+  width: 0.7rem;
+  height: 0.2rem;
 }
 
 .legend-energy {
@@ -760,24 +830,6 @@ textarea:focus-visible {
 
 .legend-desire {
   background: var(--desire);
-}
-
-.chart-tooltip {
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--line);
-  border-radius: 0.65rem;
-  background: #fff;
-  color: var(--text);
-  font-size: 0.95rem;
-}
-
-.chart-tooltip p {
-  margin: 0.15rem 0 0;
-}
-
-.chart-tooltip-when {
-  margin: 0 0 0.35rem;
-  font-weight: 650;
 }
 
 .empty-state-error {

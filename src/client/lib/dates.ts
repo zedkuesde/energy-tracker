@@ -25,6 +25,34 @@ export function formatParisDateTime(value: string): string {
   }).format(date);
 }
 
+export function formatParisDate(value: string): string {
+  const date = parseUtcInstant(value);
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: PARIS,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(date);
+}
+
+export function formatParisTime(value: string): string {
+  const date = parseUtcInstant(value);
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: PARIS,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+export function formatParisWeekdayTime(value: string): string {
+  const date = parseUtcInstant(value);
+  const weekday = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: PARIS,
+    weekday: 'long',
+  }).format(date);
+  return `${weekday} ${formatParisTime(value)}`;
+}
+
 export function formatParisDateShort(value: string | number): string {
   const date =
     typeof value === 'number' ? new Date(value) : parseUtcInstant(value);
