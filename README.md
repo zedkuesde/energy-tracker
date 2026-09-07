@@ -6,7 +6,7 @@ Ce n’est pas un outil médical, de diagnostic, de traitement ou de productivit
 
 ## Spécification
 
-La source de vérité du projet est [`docs/spec-energy-tracker.md`](docs/spec-energy-tracker.md).
+La source de vérité du projet est `[docs/spec-energy-tracker.md](docs/spec-energy-tracker.md)`.
 
 ## Prérequis
 
@@ -107,7 +107,6 @@ Pages frontend :
 - `/` — saisie rapide connectée à `POST /api/entries`
 - `/history` — historique réel (`GET /api/entries`, pagination « Charger plus », modification et suppression)
 - `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours)
-- `/design-preview` — maquette visuelle isolée (« Cahier ivoire »), données fictives uniquement. Accessible sans authentification en développement local (`http://localhost:5173/design-preview`). Absente des routes publiques en production.
 
 API disponible :
 
@@ -221,6 +220,8 @@ docker compose logs -f energy-tracker
 curl -i http://127.0.0.1:3020/health
 ```
 
+
+
 ### Mise à jour sur le VPS
 
 Ne jamais utiliser `docker compose down -v` : cette commande supprimerait le volume nommé `energy_tracker_data` et donc la base SQLite.
@@ -235,6 +236,8 @@ docker compose ps
 docker compose logs --tail=100 energy-tracker
 ```
 
+
+
 ### Validation après déploiement
 
 - `curl -i http://127.0.0.1:3020/health` et healthcheck Compose (`docker compose ps`)
@@ -244,6 +247,8 @@ docker compose logs --tail=100 energy-tracker
 - création d’une entrée
 - `docker compose restart energy-tracker` (sans `-v`) puis vérification que l’entrée existe encore
 - déconnexion et refus de l’API sans session (`401`)
+
+
 
 ### Reverse proxy (prérequis uniquement)
 
