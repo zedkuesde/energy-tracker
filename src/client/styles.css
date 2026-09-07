@@ -225,6 +225,7 @@ textarea {
   margin: 0.15rem 0 0;
   background: transparent;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .indicator-energy .score-slider {
@@ -280,6 +281,7 @@ textarea {
   border: 0;
   border-radius: 50%;
   background: var(--tone-fill);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .score-slider.is-unset::-webkit-slider-thumb {
@@ -527,6 +529,37 @@ input:focus-visible,
 textarea:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+
+.nav-link,
+.range-button,
+.activity-option,
+.primary-button,
+.secondary-button,
+.text-button,
+.logout-button,
+.danger-button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-link:active,
+.range-button:active:not(:disabled),
+.activity-option:active,
+.text-button:active,
+.logout-button:active {
+  opacity: 0.78;
+}
+
+.secondary-button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--bg) 88%, var(--text));
+}
+
+.primary-button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, #1a1814);
+}
+
+.danger-button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 88%, #1a1814);
 }
 
 .entry-list {
@@ -779,6 +812,21 @@ textarea:focus-visible {
   width: 100%;
   height: 280px;
   margin: 0.15rem 0 0;
+}
+
+.chart-frame,
+.chart-frame .recharts-wrapper,
+.chart-frame .recharts-surface {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chart-frame .recharts-surface:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.chart-frame .recharts-surface:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .chart-detail {
