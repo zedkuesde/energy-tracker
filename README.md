@@ -107,6 +107,7 @@ Pages frontend :
 - `/` — saisie rapide connectée à `POST /api/entries`
 - `/history` — historique réel (`GET /api/entries`, pagination « Charger plus », modification et suppression)
 - `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours)
+- `/design-preview` — maquette visuelle isolée (« Cahier ivoire »), données fictives uniquement. Accessible sans authentification en développement local (`http://localhost:5173/design-preview`). Absente des routes publiques en production.
 
 API disponible :
 
