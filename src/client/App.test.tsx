@@ -92,6 +92,10 @@ describe('App authentification', () => {
       }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('img', { name: 'Energy Tracker' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('ENERGY TRACKER')).not.toBeInTheDocument();
+    expect(
       screen.getByRole('button', { name: 'Se déconnecter' }),
     ).toBeInTheDocument();
   });

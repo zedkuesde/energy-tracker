@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, safeReturnPath } from '../auth/auth-context';
+import { BrandMark } from '../brand/BrandMark';
 import { AuthRequestError } from '../lib/api/auth';
 
 function errorMessage(error: unknown): string {
@@ -59,7 +60,7 @@ export function LoginPage() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <p className="app-name">Energy Tracker</p>
+        <BrandMark />
       </header>
       <main className="app-main login-main">
         <section className="page">

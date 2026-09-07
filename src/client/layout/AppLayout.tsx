@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
+import { BrandMark } from '../brand/BrandMark';
 
 const navItems = [
   { to: '/', label: 'Saisie', end: true },
@@ -13,15 +14,32 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <p className="app-name">Energy Tracker</p>
+        <BrandMark />
         <button
           type="button"
-          className="text-button logout-button"
+          className="logout-button"
+          aria-label="Se déconnecter"
           onClick={() => {
             void logout();
           }}
         >
-          Se déconnecter
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M10 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+            <path
+              d="M11 12h9M17 8l4 4-4 4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
       </header>
       <main className="app-main">

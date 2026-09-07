@@ -14,7 +14,7 @@ export function ActivityPicker({
   const labelId = `${idPrefix}-label`;
   return (
     <div className="field">
-      <p className="field-label" id={labelId}>
+      <p className="field-label activity-label" id={labelId}>
         Activité
         <span className="indicator-optional"> (facultatif)</span>
       </p>
@@ -25,7 +25,11 @@ export function ActivityPicker({
             <button
               key={item.value}
               type="button"
-              className={selected ? 'chip chip-active' : 'chip'}
+              className={
+                selected
+                  ? 'activity-option activity-option-active'
+                  : 'activity-option'
+              }
               aria-pressed={selected}
               onClick={() => {
                 onChange(selected ? null : item.value);

@@ -73,9 +73,7 @@ export function LogPage() {
   return (
     <section className="page">
       <h1>Comment tu te sens maintenant ?</h1>
-      <p className="lede">
-        Énergie, fatigue, envie. À toi de voir ce qui est utile.
-      </p>
+      <p className="lede">Quelques secondes pour faire le point.</p>
       <form className="log-form" onSubmit={handleSubmit}>
         <EntryFields
           energy={energy}

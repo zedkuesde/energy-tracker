@@ -43,6 +43,9 @@ describe('LogPage', () => {
 
   test('le bouton Enregistrer est désactivé sans énergie ou sans fatigue', () => {
     render(<LogPage />);
+    expect(
+      screen.getByText('Quelques secondes pour faire le point.'),
+    ).toBeInTheDocument();
     const submit = screen.getByRole('button', { name: 'Enregistrer' });
     expect(submit).toBeDisabled();
 

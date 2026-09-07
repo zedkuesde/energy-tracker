@@ -52,6 +52,9 @@ describe('LoginPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Accès à Energy Tracker' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Energy Tracker' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Mot de passe')).toBeInTheDocument();
   });
 

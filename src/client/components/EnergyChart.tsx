@@ -16,9 +16,9 @@ type EnergyChartProps = {
   showDesire: boolean;
 };
 
-const ENERGY_COLOR = '#3f6f62';
-const FATIGUE_COLOR = '#9a5a42';
-const DESIRE_COLOR = '#5d6f82';
+const ENERGY_COLOR = '#c49a3c';
+const FATIGUE_COLOR = '#6e4452';
+const DESIRE_COLOR = '#6a7d6e';
 
 function ChartTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload?.length) {
