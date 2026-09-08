@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { EnergyChart } from '../components/EnergyChart';
+import { PeriodSummary } from '../components/PeriodSummary';
 import { RangeSelector } from '../components/RangeSelector';
 import { StatusPanel } from '../components/StatusPanel';
 import { useChartEntries } from '../hooks/useChartEntries';
@@ -12,10 +13,13 @@ type ChartsPageProps = {
 
 export function ChartsPage({ now }: ChartsPageProps) {
   const [range, setRange] = useState<RangeDays>(7);
-  const { entries, loading, error, truncated, retry } = useChartEntries(
-    range,
-    now,
-  );
+  const { entries, entriesRange, loading, error, truncated, retry } =
+    useChartEntries(range, now);
+  const periodReady = entriesRange === range;
+  const showLoadingPanel =
+    !error && (!periodReady || (loading && entries.length === 0));
+  const showData = periodReady && entries.length > 0;
+  const showEmpty = periodReady && !loading && !error && entries.length === 0;
   const points = toChartPoints(entries);
   const showDesire = shouldShowDesireLine(entries);
 
@@ -24,13 +28,13 @@ export function ChartsPage({ now }: ChartsPageProps) {
       <h1>Graphes</h1>
       <RangeSelector value={range} onChange={setRange} />
 
-      {loading && entries.length === 0 ? (
+      {showLoadingPanel ? (
         <StatusPanel tone="loading">
           <p>Chargement des graphes…</p>
         </StatusPanel>
       ) : null}
 
-      {loading && entries.length > 0 ? (
+      {loading && showData ? (
         <p className="hint" role="status">
           Chargement…
         </p>
@@ -42,17 +46,12 @@ export function ChartsPage({ now }: ChartsPageProps) {
         </StatusPanel>
       ) : null}
 
-      {!loading && !error && entries.length === 0 ? (
-        <StatusPanel>
-          <p>Aucune entrée sur cette période.</p>
-        </StatusPanel>
+      {showEmpty || showData ? (
+        <PeriodSummary range={range} entries={entries} />
       ) : null}
 
-      {entries.length > 0 ? (
+      {showData ? (
         <div className="chart-block">
-          {entries.length === 1 ? (
-            <p className="hint">Une observation est affichée.</p>
-          ) : null}
           <EnergyChart points={points} showDesire={showDesire} />
           <ul className="chart-legend" aria-label="Légende">
             <li>
@@ -82,7 +81,7 @@ export function ChartsPage({ now }: ChartsPageProps) {
         </div>
       ) : null}
 
-      {truncated ? (
+      {periodReady && truncated ? (
         <StatusPanel>
           <p>La vue ne peut pas charger davantage pour le moment.</p>
         </StatusPanel>

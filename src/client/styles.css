@@ -802,6 +802,63 @@ textarea:focus-visible {
   margin-top: 0.85rem;
 }
 
+.period-summary {
+  margin: 0.55rem 0 0.15rem;
+}
+
+.period-summary-empty {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+.period-summary-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.period-summary-count {
+  margin: 0.2rem 0 0.65rem;
+  color: var(--muted);
+}
+
+.period-summary-metrics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.period-summary-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.period-summary-swatch {
+  flex: 0 0 0.7rem;
+  width: 0.7rem;
+  height: 0.2rem;
+  align-self: center;
+}
+
+.period-summary-metric-energy .period-summary-swatch {
+  background: var(--energy);
+}
+
+.period-summary-metric-fatigue .period-summary-swatch {
+  background: var(--fatigue);
+}
+
+.period-summary-metric-desire .period-summary-swatch {
+  background: var(--desire);
+}
+
 .chart-block {
   display: flex;
   flex-direction: column;

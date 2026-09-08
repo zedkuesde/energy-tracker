@@ -106,7 +106,7 @@ Pages frontend :
 - `/login` — connexion (accessible sans session)
 - `/` — saisie rapide connectée à `POST /api/entries`
 - `/history` — historique réel (`GET /api/entries`, pagination « Charger plus », modification et suppression)
-- `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours)
+- `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours) et résumé descriptif de la période active
 
 API disponible :
 
@@ -126,7 +126,7 @@ L’identifiant `:id` doit être un UUID v4. Un identifiant mal formé vaut `400
 
 `POST` refuse les champs inconnus (`userId`, `user_id`, `id`, etc.). `PATCH` n’accepte que `timestamp`, `energy`, `fatigue`, `desire`, `context` et `activity`. Un champ à `null` retire `desire`, `context` ou `activity`. `id`, `created_at` et `updated_at` ne sont pas modifiables. `updated_at` est mis à jour côté serveur uniquement après un PATCH réussi. L’interface d’édition n’envoie jamais `timestamp` : la date et l’heure restent affichées en lecture seule dans `Europe/Paris`.
 
-Les graphes n’utilisent pas de route `/api/stats`. Ils relisent `GET /api/entries` avec `from` / `to`, page par page (`limit=100`), jusqu’à avoir toutes les entrées de la période, une page vide, ou 1 000 entrées. Au-delà, un message indique que la vue ne peut pas charger davantage.
+Les graphes n’utilisent pas de route `/api/stats`. Ils relisent `GET /api/entries` avec `from` / `to`, page par page (`limit=100`), jusqu’à avoir toutes les entrées de la période, une page vide, ou 1 000 entrées. Au-delà, un message indique que la vue ne peut pas charger davantage. Le résumé au-dessus du graphe (moyennes énergie / fatigue / envie) est calculé uniquement côté client à partir de ces entrées déjà chargées. Une absence d’envie n’est jamais comptée comme zéro. Pendant un changement de période, le résumé et le graphe restent masqués jusqu’à ce que les nouvelles données correspondent à la période demandée.
 
 Périodes des graphes (instants UTC inclusifs, fenêtre glissante) :
 

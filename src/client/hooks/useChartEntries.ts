@@ -7,6 +7,7 @@ const MAX_ENTRIES = 1000;
 
 export function useChartEntries(range: RangeDays, now?: Date) {
   const [entries, setEntries] = useState<EnergyEntry[]>([]);
+  const [entriesRange, setEntriesRange] = useState<RangeDays | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [truncated, setTruncated] = useState(false);
@@ -68,6 +69,7 @@ export function useChartEntries(range: RangeDays, now?: Date) {
       }
 
       setEntries(collected);
+      setEntriesRange(range);
       setTruncated(hitCap);
       setError(false);
       hasDataRef.current = collected.length > 0;
@@ -105,6 +107,7 @@ export function useChartEntries(range: RangeDays, now?: Date) {
 
   return {
     entries,
+    entriesRange,
     loading,
     error,
     truncated,
