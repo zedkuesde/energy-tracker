@@ -22,6 +22,15 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/client/**/*.test.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+  },
+  {
     files: [
       'src/server/**/*.ts',
       'scripts/**/*.ts',

@@ -176,6 +176,14 @@ npm start
 
 `npm run test` enchaîne les tests API (`tsx --test`) et les tests frontend (Vitest). `npm run test:client` lance uniquement Vitest.
 
+Régénérer les icônes PWA (PNG 180, 192 et 512) depuis `public/icons/icon.svg` :
+
+```bash
+npm run icons:pwa
+```
+
+Les PNG générés sont versionnés : c’est eux que l’app sert. Relancer ce script seulement après une modification du SVG.
+
 `npm run build` produit :
 
 - le client dans `dist/client`
@@ -324,6 +332,30 @@ Les curseurs d’énergie, de fatigue et d’envie sont de vrais `input type="ra
 
 L’envie reste facultative : **Ajouter l’envie** révèle le curseur, **Retirer** l’efface. Aucune valeur n’est envoyée tant qu’elle n’a pas été choisie.
 
+## Installation sur iPhone (PWA)
+
+L’application reste utilisable dans Safari sans installation. Aucun fonctionnement hors connexion n’est promis.
+
+Sur un iPhone, une fois l’app disponible en **HTTPS** :
+
+1. ouvrir le site dans Safari (pas Chrome) ;
+2. Partager → **Sur l’écran d’accueil** ;
+3. si Safari propose **Ouvrir comme app web**, l’activer ;
+4. confirmer. L’icône « Energy » s’affiche ; l’ouverture se fait en mode standalone (sans barre Safari).
+
+Vérifier les fichiers PWA en local, après `npm run build` puis `npm start` :
+
+```bash
+curl -sI http://127.0.0.1:3000/manifest.json
+curl -s http://127.0.0.1:3000/manifest.json
+curl -sI http://127.0.0.1:3000/sw.js
+curl -sI http://127.0.0.1:3000/icons/icon-192.png
+curl -sI http://127.0.0.1:3000/icons/icon-512.png
+curl -sI http://127.0.0.1:3000/icons/apple-touch-icon.png
+```
+
+`/manifest.json` doit renvoyer du JSON (`Content-Type` contenant `json`), pas du HTML. Les icônes et `/sw.js` doivent répondre `200`. En développement (`npm run dev`), Vite sert aussi ces fichiers depuis `public/`, mais le service worker ne s’enregistre qu’en production.
+
 ## État actuel
 
-Jalon Multi-compte V1 : comptes isolés (email + mot de passe), migration 003 vers un propriétaire, CLI `create-user`, pas d’inscription publique. PWA et notifications restent hors périmètre.
+Jalon PWA minimale : manifeste, icônes et mode standalone iOS. Comptes isolés (email + mot de passe), pas d’inscription publique. Notifications et mode offline restent hors périmètre.
