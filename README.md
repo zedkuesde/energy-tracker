@@ -161,6 +161,16 @@ En local hors Docker : `npm run create-user` (TTY obligatoire). Email, mot de pa
 
 La limitation des tentatives de connexion (5 échecs / 15 minutes / IP) est en mémoire : elle est réinitialisée au redémarrage du process.
 
+## Prévisualisation GitHub Codespaces
+
+Pour tester une branche depuis iPhone ou Mac **sans toucher au VPS**, utiliser GitHub Codespaces. Une seule commande dans le Codespace :
+
+```bash
+npm run codespaces:preview
+```
+
+Détails (secrets, compte démo, reset, parcours Safari) : [`docs/codespaces-preview.md`](docs/codespaces-preview.md).
+
 ## Lint, tests, formatage et build
 
 ```bash
