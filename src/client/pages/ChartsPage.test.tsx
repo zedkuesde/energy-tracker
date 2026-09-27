@@ -110,6 +110,12 @@ describe('ChartsPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/0,0 \/ 10/)).not.toBeInTheDocument();
     expect(screen.queryByText(/moyenne/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Énergie' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('list', { name: 'Légende' }),
+    ).not.toBeInTheDocument();
   });
 
   test('affiche un état adapté pour une seule donnée', async () => {
@@ -130,12 +136,23 @@ describe('ChartsPage', () => {
     expect(within(region).getByText('Fatigue 4 / 10')).toBeInTheDocument();
     expect(within(region).queryByText(/moyenne/)).not.toBeInTheDocument();
     expect(within(region).queryByText(/Envie/)).not.toBeInTheDocument();
+
     expect(
-      screen.queryByText('Une observation est affichée.'),
-    ).not.toBeInTheDocument();
+      screen.getByRole('heading', { name: 'Énergie' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Fatigue' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 observation ce jour')).toBeInTheDocument();
+    expect(screen.getAllByText('Énergie 7 / 10').length).toBeGreaterThan(1);
+    expect(screen.getAllByText('Fatigue 4 / 10').length).toBeGreaterThan(1);
+
     const legend = screen.getByRole('list', { name: 'Légende' });
     expect(within(legend).getByText('Énergie')).toBeInTheDocument();
     expect(within(legend).getByText('Fatigue')).toBeInTheDocument();
+    expect(
+      within(legend).getByText('Moyenne de la période'),
+    ).toBeInTheDocument();
     expect(within(legend).queryByText('Envie')).not.toBeInTheDocument();
   });
 
@@ -169,6 +186,7 @@ describe('ChartsPage', () => {
       within(first).getByText('Fatigue moyenne 1,0 / 10'),
     ).toBeInTheDocument();
     expect(within(first).queryByText(/Envie/)).not.toBeInTheDocument();
+    expect(screen.getByText('2 observations ce jour')).toBeInTheDocument();
 
     await user.click(screen.getByRole('radio', { name: '30 jours' }));
     const second = await screen.findByText('Sur 30 jours');
@@ -240,7 +258,7 @@ describe('ChartsPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('affiche la courbe envie à partir de 2 valeurs', async () => {
+  test('garde Envie dans le résumé sans la mettre dans la légende des graphes', async () => {
     vi.mocked(fetch).mockResolvedValue(
       ok([
         entry('a', '2026-09-06T10:00:00.000Z', { desire: 3 }),
@@ -257,32 +275,17 @@ describe('ChartsPage', () => {
       within(region).getByText('Envie moyenne 5,5 / 10'),
     ).toBeInTheDocument();
     const legend = await screen.findByRole('list', { name: 'Légende' });
-    expect(within(legend).getByText('Envie')).toBeInTheDocument();
-  });
-
-  test('masque la légende Envie s’il y a moins de 2 valeurs', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      ok([
-        entry('a', '2026-09-06T10:00:00.000Z', { desire: 3 }),
-        entry('b', '2026-09-06T12:00:00.000Z'),
-      ]) as Response,
-    );
-
-    render(<ChartsPage now={NOW} />);
-
-    const region = await screen.findByRole('region', {
-      name: 'Résumé de la période',
-    });
-    expect(
-      within(region).getByText('Envie 3 / 10 · 1 observation'),
-    ).toBeInTheDocument();
-    expect(within(region).queryByText(/Envie moyenne/)).not.toBeInTheDocument();
-    const legend = await screen.findByRole('list', { name: 'Légende' });
     expect(within(legend).getByText('Énergie')).toBeInTheDocument();
+    expect(within(legend).getByText('Fatigue')).toBeInTheDocument();
+    expect(
+      within(legend).getByText('Moyenne de la période'),
+    ).toBeInTheDocument();
     expect(within(legend).queryByText('Envie')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Envie 3/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Envie 8/)).not.toBeInTheDocument();
   });
 
-  test('détail Envie possible sans légende si une seule valeur désir', async () => {
+  test('masque Envie dans le détail graphe même avec une seule valeur désir', async () => {
     vi.mocked(fetch).mockResolvedValue(
       ok([
         entry('a', '2026-09-06T10:00:00.000Z'),
@@ -298,7 +301,8 @@ describe('ChartsPage', () => {
     expect(
       within(region).getByText('Envie 7 / 10 · 1 observation'),
     ).toBeInTheDocument();
-    expect(await screen.findByText('Envie 7 / 10')).toBeInTheDocument();
+    expect(within(region).queryByText(/Envie moyenne/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Envie 7 / 10')).not.toBeInTheDocument();
     const legend = screen.getByRole('list', { name: 'Légende' });
     expect(within(legend).queryByText('Envie')).not.toBeInTheDocument();
   });
@@ -341,7 +345,9 @@ describe('ChartsPage', () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Réessayer' }));
-    expect(await screen.findByText('Énergie')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Énergie' }),
+    ).toBeInTheDocument();
   });
 
   test('s’arrête si une page est vide et signale le plafond de 1000', async () => {
@@ -369,5 +375,40 @@ describe('ChartsPage', () => {
     expect(
       within(summary()).getByText('1000 observations'),
     ).toBeInTheDocument();
+  });
+
+  test('ligne de moyenne suit les saisies brutes, pas la moyenne des jours', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      ok([
+        entry('a', '2026-09-01T10:00:00.000Z', { energy: 10, fatigue: 0 }),
+        entry('b', '2026-09-01T14:00:00.000Z', { energy: 10, fatigue: 0 }),
+        entry('c', '2026-09-03T12:00:00.000Z', { energy: 0, fatigue: 10 }),
+      ]) as Response,
+    );
+
+    render(<ChartsPage now={NOW} />);
+
+    const region = await screen.findByRole('region', {
+      name: 'Résumé de la période',
+    });
+    expect(
+      within(region).getByText('Énergie moyenne 6,7 / 10'),
+    ).toBeInTheDocument();
+    expect(
+      within(region).getByText('Fatigue moyenne 3,3 / 10'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Énergie' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Fatigue' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('list', { name: 'Légende' })).getByText(
+        'Moyenne de la période',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Énergie 0 / 10')).toBeInTheDocument();
+    expect(screen.queryByText('Énergie 5,0 / 10')).not.toBeInTheDocument();
   });
 });

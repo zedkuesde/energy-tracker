@@ -106,7 +106,7 @@ Pages frontend :
 - `/login` — connexion (accessible sans session)
 - `/` — saisie rapide connectée à `POST /api/entries`
 - `/history` — historique réel (`GET /api/entries`, pagination « Charger plus », modification et suppression)
-- `/charts` — graphes énergie / fatigue (périodes 7, 30 et 90 jours) et résumé descriptif de la période active
+- `/charts` — graphes journaliers énergie / fatigue (périodes 7, 30 et 90 jours), ligne de moyenne de période, et résumé descriptif (y compris envie)
 
 API disponible :
 
@@ -135,7 +135,7 @@ Périodes des graphes (instants UTC inclusifs, fenêtre glissante) :
 
 Les dates affichées passent toujours par `Intl.DateTimeFormat` avec `timeZone: 'Europe/Paris'`. Une chaîne ISO sans fuseau n’est jamais traitée comme une heure locale.
 
-La courbe envie n’apparaît que s’il existe au moins deux entrées de la période avec une valeur `desire`. Les points sans envie restent vides : aucune valeur zéro n’est inventée. Chaque saisie est un point horodaté, sans moyenne journalière.
+Les graphes affichent deux séries journalières séparées (Énergie, Fatigue). Chaque point est la moyenne des saisies du **jour civil `Europe/Paris`**. Un jour sans saisie n’est pas tracé à zéro : un trou (`null`, `connectNulls=false`) empêche de relier les jours renseignés de part et d’autre. Les deux graphes partagent le même domaine X. Une ligne horizontale pointillée « Moyenne de la période » reprend la moyenne de **toutes les saisies** déjà calculée pour le résumé (pondérée par le nombre d’observations), pas la moyenne non pondérée des points journaliers. L’Envie reste dans le résumé de période et n’apparaît plus sur les graphes. Les bornes 7 / 30 / 90 restent une fenêtre glissante UTC (`N × 24 h`).
 
 ## Base SQLite
 
