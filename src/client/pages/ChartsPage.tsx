@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { EnergyChart } from '../components/EnergyChart';
+import { DailyOverviewCharts } from '../components/EnergyChart';
 import { PeriodSummary } from '../components/PeriodSummary';
 import { RangeSelector } from '../components/RangeSelector';
 import { StatusPanel } from '../components/StatusPanel';
 import { useChartEntries } from '../hooks/useChartEntries';
-import { shouldShowDesireLine, toChartPoints } from '../lib/chartData';
+import {
+  dailyChartXDomain,
+  lastFilledDailyPoint,
+  toDailyChartPoints,
+} from '../lib/chartData';
+import { summarizePeriod } from '../lib/period-summary';
 import type { RangeDays } from '../lib/range';
 
 type ChartsPageProps = {
@@ -20,8 +25,10 @@ export function ChartsPage({ now }: ChartsPageProps) {
     !error && (!periodReady || (loading && entries.length === 0));
   const showData = periodReady && entries.length > 0;
   const showEmpty = periodReady && !loading && !error && entries.length === 0;
-  const points = toChartPoints(entries);
-  const showDesire = shouldShowDesireLine(entries);
+  const dailyPoints = showData ? toDailyChartPoints(entries) : [];
+  const xDomain = dailyChartXDomain(dailyPoints);
+  const summary = showData ? summarizePeriod(entries, range) : null;
+  const initialActiveId = lastFilledDailyPoint(dailyPoints)?.id ?? null;
 
   return (
     <section className="page">
@@ -50,35 +57,14 @@ export function ChartsPage({ now }: ChartsPageProps) {
         <PeriodSummary range={range} entries={entries} />
       ) : null}
 
-      {showData ? (
-        <div className="chart-block">
-          <EnergyChart points={points} showDesire={showDesire} />
-          <ul className="chart-legend" aria-label="Légende">
-            <li>
-              <span
-                className="legend-swatch legend-energy"
-                aria-hidden="true"
-              />
-              Énergie
-            </li>
-            <li>
-              <span
-                className="legend-swatch legend-fatigue"
-                aria-hidden="true"
-              />
-              Fatigue
-            </li>
-            {showDesire ? (
-              <li>
-                <span
-                  className="legend-swatch legend-desire"
-                  aria-hidden="true"
-                />
-                Envie
-              </li>
-            ) : null}
-          </ul>
-        </div>
+      {showData && xDomain ? (
+        <DailyOverviewCharts
+          points={dailyPoints}
+          xDomain={xDomain}
+          energyMean={summary?.energy?.mean ?? null}
+          fatigueMean={summary?.fatigue?.mean ?? null}
+          initialActiveId={initialActiveId}
+        />
       ) : null}
 
       {periodReady && truncated ? (
