@@ -21,6 +21,8 @@
     "test:client:watch": "vitest",
     "create-user": "node scripts/run-create-user.mjs",
     "migrate": "node scripts/run-migrate.mjs",
+    "codespaces:preview": "node scripts/run-codespaces-preview.mjs",
+    "codespaces:reset": "node scripts/run-codespaces-reset.mjs",
     "auth:hash": "tsx scripts/auth-hash.ts",
     "auth:secret": "tsx scripts/auth-secret.ts",
     "icons:pwa": "node scripts/generate-pwa-icons.mjs"
