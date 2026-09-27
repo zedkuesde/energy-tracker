@@ -11,6 +11,7 @@ const app = await buildApp({
   databasePath: config.databasePath,
   applyMigrations: false,
   logger: !isProduction,
+  startReminderScheduler: true,
 });
 
 if (isProduction) {

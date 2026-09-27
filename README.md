@@ -171,6 +171,20 @@ npm run codespaces:preview
 
 Détails (secrets, compte démo, reset, parcours Safari) : [`docs/codespaces-preview.md`](docs/codespaces-preview.md).
 
+## Rappels quotidiens (Web Push)
+
+V1 : un seul rappel fixe par jour (heure HH:MM, fuseau `Europe/Paris`), activable/désactivable, lié au compte. Entrée **Rappels** dans l’en-tête (pas un quatrième onglet). Contenu de notification neutre. Permission demandée uniquement après un geste explicite. L’app reste utilisable si les notifications sont refusées ou absentes.
+
+Générer des clés VAPID **stables** (à conserver en production ; les changer invalide tous les abonnements) :
+
+```bash
+npm run vapid:generate
+```
+
+Coller `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT` dans `.env` (jamais dans Git). Les trois ensemble, ou aucune. Sans ces variables, les réglages d’horaire fonctionnent mais l’abonnement push est indisponible.
+
+La planification est côté serveur (pas un minuteur dans la page) : compatible redémarrage, changement d’heure CET/CEST, un seul envoi par jour calendaire Paris, nettoyage des abonnements invalides (404/410).
+
 ## Lint, tests, formatage et build
 
 ```bash
@@ -217,6 +231,7 @@ Copier `.env.example` vers `.env`. Ne jamais y mettre de secret réel dans Git.
 - `AUTH_SESSION_TTL_SECONDS` — durée de session en secondes (défaut `1209600`, soit 14 jours)
 - `TRUST_PROXY` — `false` en développement local. Ne pas le lier à `AUTH_COOKIE_SECURE`.
 - `NODE_ENV` — `production` dans Compose ; ne pas lancer le serveur en mode développement dans Docker
+- `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` — optionnels ensemble ; nécessaires pour Web Push. Génération : `npm run vapid:generate`. Conserver les mêmes clés en production.
 
 `TRUST_PROXY=true` uniquement quand Fastify n’est pas exposé publiquement et que seul un reverse proxy de confiance peut joindre l’application. Tant que Fastify écoute directement sur une interface accessible depuis Internet, laisser `TRUST_PROXY=false`.
 
@@ -368,4 +383,4 @@ curl -sI http://127.0.0.1:3000/icons/apple-touch-icon.png
 
 ## État actuel
 
-Jalon PWA minimale : manifeste, icônes et mode standalone iOS. Comptes isolés (email + mot de passe), pas d’inscription publique. Notifications et mode offline restent hors périmètre.
+Jalon rappels Web Push V1 : un rappel quotidien fixe (Europe/Paris), préférences et abonnements liés au `user_id`, entrée « Rappels » dans l’en-tête, service worker push + `notificationclick`. Clés VAPID hors Git. Mode offline avancé hors périmètre.

@@ -1,12 +1,24 @@
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { registerAuth } from './auth/register.js';
-import { config, parseAuthConfig, type AuthConfig } from './config.js';
+import {
+  config,
+  parseAuthConfig,
+  parseVapidConfig,
+  type AuthConfig,
+  type VapidConfig,
+} from './config.js';
 import { openDatabase } from './db.js';
 import { runMigrations } from './migrate.js';
 import type { MigrationOptions } from './migrate-multi-account.js';
+import {
+  createReminderScheduler,
+  type ReminderScheduler,
+} from './reminders/scheduler.js';
+import { createReminderStore } from './reminders/store.js';
 import { registerEntryRoutes } from './routes/entries.js';
 import { registerHealthRoute } from './routes/health.js';
+import { registerReminderRoutes } from './routes/reminders.js';
 import { HttpError } from './types.js';
 
 export type BuildAppOptions = {
@@ -15,12 +27,16 @@ export type BuildAppOptions = {
   migration?: MigrationOptions;
   logger?: boolean;
   auth?: AuthConfig;
+  vapid?: VapidConfig | null;
+  startReminderScheduler?: boolean;
 };
 
 export async function buildApp(
   options: BuildAppOptions,
 ): Promise<FastifyInstance> {
   const auth = options.auth ?? parseAuthConfig();
+  const vapid =
+    options.vapid !== undefined ? options.vapid : parseVapidConfig();
   const db = openDatabase(options.databasePath);
   if (options.applyMigrations) {
     runMigrations(db, options.migration);
@@ -33,7 +49,20 @@ export async function buildApp(
   });
   app.decorate('sqlite', db);
 
+  let reminderScheduler: ReminderScheduler | undefined;
+  if (vapid && options.startReminderScheduler) {
+    reminderScheduler = createReminderScheduler({
+      store: createReminderStore(db),
+      enabled: true,
+      onError: (error) => {
+        app.log.error(error);
+      },
+    });
+    app.decorate('reminderScheduler', reminderScheduler);
+  }
+
   app.addHook('onClose', async () => {
+    reminderScheduler?.stop();
     db.close();
   });
 
@@ -76,6 +105,13 @@ export async function buildApp(
   await registerAuth(app, db, auth);
   registerHealthRoute(app);
   registerEntryRoutes(app, db);
+  registerReminderRoutes(app, db, vapid);
+
+  if (reminderScheduler) {
+    app.addHook('onReady', async () => {
+      reminderScheduler?.start();
+    });
+  }
 
   return app;
 }
