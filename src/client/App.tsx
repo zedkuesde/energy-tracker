@@ -6,6 +6,7 @@ import { ChartsPage } from './pages/ChartsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { LogPage } from './pages/LogPage';
 import { LoginPage } from './pages/LoginPage';
+import { RemindersPage } from './pages/RemindersPage';
 
 export function MvpApp() {
   return (
@@ -17,6 +18,7 @@ export function MvpApp() {
             <Route path="/" element={<LogPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/charts" element={<ChartsPage />} />
+            <Route path="/reminders" element={<RemindersPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

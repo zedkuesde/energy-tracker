@@ -26,6 +26,7 @@ const expectedMigrations = [
   '001_create_energy_entries.sql',
   '002_create_sessions.sql',
   MULTI_ACCOUNT_MIGRATION_ID,
+  '004_create_reminder_notifications.sql',
 ];
 
 const tempDir = await mkdtemp(path.join(tmpdir(), 'energy-tracker-migrate-'));
@@ -122,6 +123,7 @@ test('migration exécutée une fois puis relancée sans recréer ni effacer de d
       { id: '001_create_energy_entries.sql' },
       { id: '002_create_sessions.sql' },
       { id: MULTI_ACCOUNT_MIGRATION_ID },
+      { id: '004_create_reminder_notifications.sql' },
     ]);
   } finally {
     db.close();
@@ -150,7 +152,10 @@ test('003 rattache les entrées existantes au propriétaire, recrée les session
     assert.equal(before.total, 2);
 
     const applied = runMigrations(db, bootstrap);
-    assert.deepEqual(applied, [MULTI_ACCOUNT_MIGRATION_ID]);
+    assert.deepEqual(applied, [
+      MULTI_ACCOUNT_MIGRATION_ID,
+      '004_create_reminder_notifications.sql',
+    ]);
 
     const after = db
       .prepare('SELECT COUNT(*) AS total FROM energy_entries')

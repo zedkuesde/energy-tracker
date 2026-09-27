@@ -11,6 +11,9 @@ Dans **GitHub → Settings → Secrets and variables → Codespaces** (repositor
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CODESPACES_DEMO_PASSWORD` | Mot de passe du compte démo (≥ 12 caractères). Conservez-le aussi dans votre gestionnaire de mots de passe : les secrets GitHub sont en écriture seule. |
 | `AUTH_SESSION_SECRET`      | Secret de signature des cookies (≥ 32 caractères). Génération : `npm run auth:secret`.                                                                  |
+| `VAPID_PUBLIC_KEY`         | Optionnel. Clé publique Web Push. Génération : `npm run vapid:generate`. Requis pour tester l’abonnement push.                                          |
+| `VAPID_PRIVATE_KEY`        | Optionnel. Clé privée Web Push (jamais dans Git). À conserver stable tant que des abonnements existent.                                                 |
+| `VAPID_SUBJECT`            | Optionnel. `mailto:…` ou `https://…`. Les trois variables VAPID doivent être présentes ensemble, ou toutes absentes.                                    |
 
 Ne jamais y mettre les secrets ou la base de production.
 
@@ -59,7 +62,19 @@ Sans `--confirm`, ou hors Codespaces, ou si le chemin n’est pas le fichier can
 5. Panneau **Ports** → port **3000** (visibilité **private**) → **Open in Browser**.
 6. Se connecter avec `demo@energy-tracker.local` et le mot de passe du secret.
 7. Tester saisie, historique, graphes.
-8. Menu du Codespace → **Stop codespace**.
+8. Ouvrir **Rappels** (lien dans l’en-tête) : régler une heure Europe/Paris, activer/désactiver.
+9. Si les secrets VAPID sont configurés : installer la PWA sur l’écran d’accueil iPhone, puis appuyer sur **Activer les notifications sur cet appareil** (permission explicite).
+10. Menu du Codespace → **Stop codespace**.
+
+### Ce qui est testable dans un Codespace privé sur iPhone
+
+- UI Rappels, enregistrement des préférences, refus de permission sans casser l’app ;
+- installation PWA depuis l’URL HTTPS Codespaces (port 3000 private) ;
+- abonnement push si VAPID est configuré (compteur d’abonnements).
+
+### À vérifier séparément (réception app fermée)
+
+La réception d’une notification avec la PWA **fermée** dépend du push Apple/Safari et d’un serveur joignable avec des clés VAPID stables. Un Codespace privé qui s’endort, change d’URL ou régénère des clés ne constitue pas une preuve fiable. Valider ce scénario sur un déploiement HTTPS durable (hors VPS de production si tu ne veux pas y toucher encore), iPhone ≥ 16.4, PWA ajoutée à l’écran d’accueil, rappel planifié, app tuée, attendre l’heure Paris.
 
 Sur une réouverture du même Codespace, la base démo et le compte sont conservés : même email, même secret password.
 

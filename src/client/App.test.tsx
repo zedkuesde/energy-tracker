@@ -98,6 +98,7 @@ describe('App authentification', () => {
     expect(
       screen.getByRole('button', { name: 'Se déconnecter' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rappels' })).toBeInTheDocument();
   });
 
   test('logout appelle l’API, vide l’état et redirige vers /login', async () => {

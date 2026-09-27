@@ -41,6 +41,7 @@ declare module 'fastify' {
   }
   interface FastifyInstance {
     sqlite: import('./db.js').SqliteDatabase;
+    reminderScheduler?: import('./reminders/scheduler.js').ReminderScheduler;
   }
 }
 

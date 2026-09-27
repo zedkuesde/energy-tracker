@@ -341,7 +341,7 @@ Contraintes de déploiement :
 
 L’application doit pouvoir être ajoutée manuellement à l’écran d’accueil d’un iPhone dès le MVP.
 
-Implémenter une PWA minimale, sans notifications et sans promesse de fonctionnement hors connexion :
+Implémenter une PWA minimale, sans promesse de fonctionnement hors connexion :
 
 - fournir un manifeste web valide ;
 - définir un nom, un nom court, `start_url`, `display: standalone`, des couleurs de thème et d’arrière-plan ;
@@ -350,44 +350,42 @@ Implémenter une PWA minimale, sans notifications et sans promesse de fonctionne
 - vérifier que l’application s’ouvre correctement depuis l’icône de l’écran d’accueil ;
 - documenter dans le README les étapes d’installation sur iPhone :
   Safari → Partager → Sur l’écran d’accueil → activer « Ouvrir comme app web » si l’option est affichée ;
-- ne pas implémenter de notification push ;
-- ne pas demander de permission de notification ;
 - ne pas annoncer de fonctionnement hors connexion tant qu’il n’a pas été réellement testé ;
 - ne pas rendre l’installation obligatoire pour utiliser l’application ;
 - l’application doit rester pleinement utilisable dans Safari sans installation.
 
 Le test réel de l’installation iOS doit être effectué après déploiement HTTPS sur le VPS, depuis un véritable iPhone.
 
+## Rappels quotidiens Web Push (V1)
+
+Périmètre V1 (hors MVP initial, ajouté après usage réel) :
+
+- un seul rappel quotidien à une heure `HH:MM` choisie dans l’app, fuseau `Europe/Paris` ;
+- activation / désactivation ;
+- entrée « Rappels » dans l’en-tête, pas de quatrième onglet de navigation ;
+- contenu de notification neutre ; aucune logique de rappel intelligent ;
+- demande d’autorisation uniquement après une action explicite de l’utilisateur ;
+- l’application reste utilisable si les notifications sont refusées ou non prises en charge ;
+- Web Push (pas un minuteur dans la page) pour recevoir le rappel lorsque la PWA iPhone est installée et fermée ;
+- préférences et abonnements liés au `user_id` ;
+- migration compatible avec les données existantes ;
+- planification serveur : CET/CEST, redémarrages, un seul envoi par jour calendaire Paris, retrait des abonnements invalides ;
+- clés VAPID hors Git ; conserver des clés stables en production.
+
+Ne jamais présenter les notifications PWA sur iPhone comme garanties avant un test réel (surtout app fermée).
+
 ## Fonctions hors MVP
 
-Ne pas implémenter les notifications, Telegram, PWA avancée, mode offline, Apple Santé, import de sommeil, IA, recommandations, corrélations ou synchronisation externe dans les premières étapes.
-
-Prévoir uniquement, sans les implémenter, une possibilité d’extension future :
-
-```text
-notification_preferences
-- enabled
-- channel
-- schedule
-- quiet_hours
-```
+Ne pas implémenter Telegram, mode offline avancé, Apple Santé, import de sommeil, IA, recommandations, corrélations ou synchronisation externe dans les premières étapes.
 
 Phase ultérieure possible, seulement si l’usage réel le justifie :
 
-- service worker plus complet ;
 - cache offline ;
-- PWA avancée ;
-- Web Push ;
-- Push API et VAPID ;
-- permission de notification ;
-- serveur de souscription ;
-- test réel sur iPhone lorsque l’application est fermée ;
-- notifications désactivables ;
+- PWA plus avancée ;
 - heures silencieuses ;
+- plusieurs rappels ;
 - import manuel d’une durée ou qualité de sommeil ;
 - étude séparée des solutions compatibles avec Apple Santé.
-
-Ne jamais présenter les notifications PWA sur iPhone comme garanties avant un test réel.
 
 Ne pas supposer qu’une web app peut lire directement les données Apple Santé.
 

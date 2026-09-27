@@ -21,6 +21,15 @@ export type AuthConfig = {
   trustProxy: boolean;
 };
 
+export type VapidConfig = {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+};
+
+export const VAPID_CONFIG_INCOMPLETE =
+  'Configuration VAPID incomplète : définissez VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY et VAPID_SUBJECT, ou laissez les trois vides pour désactiver le push.';
+
 export function findProjectRoot(fromDir: string): string {
   let current = fromDir;
   while (!existsSync(path.join(current, 'package.json'))) {
@@ -141,4 +150,31 @@ export function parseAuthConfig(
     sessionTtlSeconds: parseSessionTtl(env.AUTH_SESSION_TTL_SECONDS),
     trustProxy: parseRequiredBoolean(env.TRUST_PROXY, false),
   };
+}
+
+function isValidVapidSubject(subject: string): boolean {
+  return subject.startsWith('mailto:') || subject.startsWith('https://');
+}
+
+/**
+ * Retourne la config VAPID si les trois variables sont présentes et valides.
+ * Si les trois sont absentes, retourne null (push désactivé, app utilisable).
+ * Un mélange partiel lève une erreur pour éviter une config silencieuse.
+ */
+export function parseVapidConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): VapidConfig | null {
+  const publicKey = env.VAPID_PUBLIC_KEY?.trim() ?? '';
+  const privateKey = env.VAPID_PRIVATE_KEY?.trim() ?? '';
+  const subject = env.VAPID_SUBJECT?.trim() ?? '';
+
+  if (!publicKey && !privateKey && !subject) {
+    return null;
+  }
+
+  if (!publicKey || !privateKey || !subject || !isValidVapidSubject(subject)) {
+    throw new Error(VAPID_CONFIG_INCOMPLETE);
+  }
+
+  return { publicKey, privateKey, subject };
 }

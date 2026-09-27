@@ -15,9 +15,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "tsx --test src/server/**/*.test.ts && vitest run",
+    "test": "tsx --test 'src/server/**/*.test.ts' && vitest run",
     "test:client": "vitest run",
-    "test:watch": "tsx --test --watch src/server/**/*.test.ts",
+    "test:watch": "tsx --test --watch 'src/server/**/*.test.ts'",
     "test:client:watch": "vitest",
     "create-user": "node scripts/run-create-user.mjs",
     "migrate": "node scripts/run-migrate.mjs",
@@ -25,7 +25,8 @@
     "codespaces:reset": "node scripts/run-codespaces-reset.mjs",
     "auth:hash": "tsx scripts/auth-hash.ts",
     "auth:secret": "tsx scripts/auth-secret.ts",
-    "icons:pwa": "node scripts/generate-pwa-icons.mjs"
+    "icons:pwa": "node scripts/generate-pwa-icons.mjs",
+    "vapid:generate": "tsx scripts/vapid-generate.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
@@ -36,7 +37,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -47,6 +49,7 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
     "eslint": "^10.10.0",

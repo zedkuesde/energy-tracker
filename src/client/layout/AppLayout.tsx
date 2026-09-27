@@ -15,32 +15,42 @@ export function AppLayout() {
     <div className="app-shell">
       <header className="app-header">
         <BrandMark />
-        <button
-          type="button"
-          className="logout-button"
-          aria-label="Se déconnecter"
-          onClick={() => {
-            void logout();
-          }}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M10 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-            <path
-              d="M11 12h9M17 8l4 4-4 4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <div className="header-actions">
+          <NavLink
+            to="/reminders"
+            className={({ isActive }) =>
+              isActive ? 'header-link header-link-active' : 'header-link'
+            }
+          >
+            Rappels
+          </NavLink>
+          <button
+            type="button"
+            className="logout-button"
+            aria-label="Se déconnecter"
+            onClick={() => {
+              void logout();
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M10 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+              <path
+                d="M11 12h9M17 8l4 4-4 4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
       <main className="app-main">
         <Outlet />
