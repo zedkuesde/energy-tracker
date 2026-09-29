@@ -1,6 +1,8 @@
 export type ReminderSettings = {
   enabled: boolean;
   timeHhmm: string;
+  lowEnergyEnabled: boolean;
+  absenceEnabled: boolean;
   timezone: string;
   subscriptionCount: number;
   pushConfigured: boolean;
@@ -80,6 +82,8 @@ export async function fetchReminders(): Promise<ReminderSettings> {
 export async function saveReminders(input: {
   enabled: boolean;
   timeHhmm: string;
+  lowEnergyEnabled: boolean;
+  absenceEnabled: boolean;
 }): Promise<ReminderSettings> {
   const body = await requestJson<{ data: ReminderSettings }>('/api/reminders', {
     method: 'PUT',

@@ -100,6 +100,8 @@ describe('API rappels', () => {
     assert.deepEqual(initial.json().data, {
       enabled: false,
       timeHhmm: '20:00',
+      lowEnergyEnabled: false,
+      absenceEnabled: false,
       timezone: 'Europe/Paris',
       subscriptionCount: 0,
       pushConfigured: true,
@@ -111,18 +113,30 @@ describe('API rappels', () => {
     const updated = await inject({
       method: 'PUT',
       url: '/api/reminders',
-      payload: { enabled: true, timeHhmm: '08:15' },
+      payload: {
+        enabled: true,
+        timeHhmm: '08:15',
+        lowEnergyEnabled: true,
+        absenceEnabled: false,
+      },
     });
     assert.equal(updated.statusCode, 200);
     assert.equal(updated.json().data.enabled, true);
     assert.equal(updated.json().data.timeHhmm, '08:15');
+    assert.equal(updated.json().data.lowEnergyEnabled, true);
+    assert.equal(updated.json().data.absenceEnabled, false);
   });
 
   test('refuse une heure invalide', async () => {
     const response = await inject({
       method: 'PUT',
       url: '/api/reminders',
-      payload: { enabled: true, timeHhmm: '25:00' },
+      payload: {
+        enabled: true,
+        timeHhmm: '25:00',
+        lowEnergyEnabled: false,
+        absenceEnabled: false,
+      },
     });
     assert.equal(response.statusCode, 400);
     assert.equal(response.json().error.code, 'validation_error');
@@ -172,13 +186,23 @@ describe('API rappels', () => {
     await inject({
       method: 'PUT',
       url: '/api/reminders',
-      payload: { enabled: true, timeHhmm: '07:00' },
+      payload: {
+        enabled: true,
+        timeHhmm: '07:00',
+        lowEnergyEnabled: false,
+        absenceEnabled: false,
+      },
     });
     const friendPrefs = await app.inject({
       method: 'PUT',
       url: '/api/reminders',
       cookies: { [SESSION_COOKIE_NAME]: friendCookie },
-      payload: { enabled: true, timeHhmm: '21:30' },
+      payload: {
+        enabled: true,
+        timeHhmm: '21:30',
+        lowEnergyEnabled: false,
+        absenceEnabled: false,
+      },
     });
     assert.equal(friendPrefs.json().data.timeHhmm, '21:30');
 
@@ -245,7 +269,12 @@ describe('planification des rappels', () => {
       const now = new Date('2026-07-15T18:05:00.000Z');
       store.savePreference(
         owner.id,
-        { enabled: true, time_hhmm: '20:00' },
+        {
+          enabled: true,
+          time_hhmm: '20:00',
+          low_energy_enabled: false,
+          absence_enabled: false,
+        },
         new Date('2026-07-15T10:00:00.000Z'),
       );
       store.saveSubscription(owner.id, {
@@ -328,7 +357,12 @@ describe('planification des rappels', () => {
 
       store.savePreference(
         owner.id,
-        { enabled: true, time_hhmm: '09:00' },
+        {
+          enabled: true,
+          time_hhmm: '09:00',
+          low_energy_enabled: false,
+          absence_enabled: false,
+        },
         new Date('2026-01-15T07:00:00.000Z'),
       );
       app.sqlite

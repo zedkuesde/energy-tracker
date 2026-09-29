@@ -27,6 +27,7 @@ const expectedMigrations = [
   '002_create_sessions.sql',
   MULTI_ACCOUNT_MIGRATION_ID,
   '004_create_reminder_notifications.sql',
+  '005_smart_reminders.sql',
 ];
 
 const tempDir = await mkdtemp(path.join(tmpdir(), 'energy-tracker-migrate-'));
@@ -124,6 +125,7 @@ test('migration exécutée une fois puis relancée sans recréer ni effacer de d
       { id: '002_create_sessions.sql' },
       { id: MULTI_ACCOUNT_MIGRATION_ID },
       { id: '004_create_reminder_notifications.sql' },
+      { id: '005_smart_reminders.sql' },
     ]);
   } finally {
     db.close();
@@ -155,6 +157,7 @@ test('003 rattache les entrées existantes au propriétaire, recrée les session
     assert.deepEqual(applied, [
       MULTI_ACCOUNT_MIGRATION_ID,
       '004_create_reminder_notifications.sql',
+      '005_smart_reminders.sql',
     ]);
 
     const after = db

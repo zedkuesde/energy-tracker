@@ -171,9 +171,16 @@ npm run codespaces:preview
 
 Détails (secrets, compte démo, reset, parcours Safari) : [`docs/codespaces-preview.md`](docs/codespaces-preview.md).
 
-## Rappels quotidiens (Web Push)
+## Rappels (Web Push)
 
-V1 : un seul rappel fixe par jour (heure HH:MM, fuseau `Europe/Paris`), activable/désactivable, lié au compte. Entrée **Rappels** dans l’en-tête (pas un quatrième onglet). Contenu de notification neutre. Permission demandée uniquement après un geste explicite. L’app reste utilisable si les notifications sont refusées ou absentes.
+**Fixe (V1)** : un rappel quotidien à une heure HH:MM (`Europe/Paris`), activable/désactivable, lié au compte. Contenu neutre. TTL push = défaut bibliothèque (~4 semaines). Rattrapage sur la journée si le serveur a manqué l’heure.
+
+**Intelligents (V2)** : deux options indépendantes du rappel fixe —
+
+- *Relance après une note basse* (énergie &lt; 5) : heure calculée par table + interpolation ; fenêtre d’envoi `[fire_at, fire_at + 15 min]` le même jour Paris ; TTL push **900 s**.
+- *Rappel si aucune saisie à 19 h* : éligible **19:00–19:15** Paris ; TTL push **900 s**.
+
+Priorité en cas de collision : relance &gt; absence &gt; fixe (une seule notification ; les autres sont marqués traités seulement après envoi réussi). Permission demandée uniquement après un geste explicite. Entrée **Rappels** dans l’en-tête.
 
 Générer des clés VAPID **stables** (à conserver en production ; les changer invalide tous les abonnements) :
 
@@ -383,4 +390,4 @@ curl -sI http://127.0.0.1:3000/icons/apple-touch-icon.png
 
 ## État actuel
 
-Jalon rappels Web Push V1 : un rappel quotidien fixe (Europe/Paris), préférences et abonnements liés au `user_id`, entrée « Rappels » dans l’en-tête, service worker push + `notificationclick`. Clés VAPID hors Git. Mode offline avancé hors périmètre.
+Jalon rappels Web Push : rappel quotidien fixe (Europe/Paris) + rappels intelligents V2 (relance note basse, absence 19 h, TTL 900 s pour les smarts uniquement). Préférences et abonnements liés au `user_id`, entrée « Rappels » dans l’en-tête, service worker push + `notificationclick`. Clés VAPID hors Git. Mode offline avancé hors périmètre.

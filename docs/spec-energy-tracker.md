@@ -363,14 +363,23 @@ Périmètre V1 (hors MVP initial, ajouté après usage réel) :
 - un seul rappel quotidien à une heure `HH:MM` choisie dans l’app, fuseau `Europe/Paris` ;
 - activation / désactivation ;
 - entrée « Rappels » dans l’en-tête, pas de quatrième onglet de navigation ;
-- contenu de notification neutre ; aucune logique de rappel intelligent ;
+- contenu de notification neutre ;
 - demande d’autorisation uniquement après une action explicite de l’utilisateur ;
 - l’application reste utilisable si les notifications sont refusées ou non prises en charge ;
 - Web Push (pas un minuteur dans la page) pour recevoir le rappel lorsque la PWA iPhone est installée et fermée ;
 - préférences et abonnements liés au `user_id` ;
 - migration compatible avec les données existantes ;
 - planification serveur : CET/CEST, redémarrages, un seul envoi par jour calendaire Paris, retrait des abonnements invalides ;
-- clés VAPID hors Git ; conserver des clés stables en production.
+- clés VAPID hors Git ; conserver des clés stables en production ; TTL push = défaut bibliothèque (~4 semaines).
+
+## Rappels intelligents Web Push (V2)
+
+- toggles séparés : « Relance après une note basse » et « Rappel si aucune saisie à 19 h » (indépendants du rappel fixe) ;
+- relance si énergie &lt; 5 : table horaire + interpolation linéaire à la minute ; pas de pending si `fire_at` déjà passé ; fenêtre `[fire_at, +15 min]` même jour Paris ; TTL push **900** ;
+- absence : éligible 19:00–19:15 inclus ; une fois par jour max ; TTL push **900** ;
+- fixe V1 : TTL et rattrapage journée **inchangés** ;
+- priorité collision : relance &gt; absence &gt; fixe ; marks des concurrents seulement après `delivered` ;
+- POST/PATCH/DELETE des saisies annulent ou recalculent le pending (ordre `timestamp`, `created_at`, `id`).
 
 Ne jamais présenter les notifications PWA sur iPhone comme garanties avant un test réel (surtout app fermée).
 
