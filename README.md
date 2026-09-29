@@ -329,11 +329,26 @@ La base utilise le mode WAL. Ne jamais copier le fichier `.sqlite` pendant que l
 
 Pas de cron dans le MVP. Emplacement sur le VPS : `./backups/` à la racine du clone (non versionné).
 
-Sauvegarde :
+Sauvegarde (arrêt, sauvegarde, redémarrage) :
 
 ```bash
 sh scripts/docker-backup.sh
 ```
+
+Le script ne lit pas, n’affiche pas, ne copie pas et ne modifie pas `.env`. Compose injecte l’environnement du service comme pour les autres commandes `docker compose run`.
+
+Le fichier est d’abord écrit dans `backups/.partial/`. Le conteneur ne le renomme vers `backups/energy-tracker-YYYYMMDD-HHMMSS.sqlite` que s’il existe et n’est pas vide. Ce renommage est le seul moment où le nom final apparaît. Un fichier absent, vide ou encore dans `backups/.partial/` n’est pas une sauvegarde : il est supprimé, il ne doit pas être restauré, et le script quitte avec un code non nul. Les messages d’erreur vont sur stderr.
+
+Si le script a lui-même arrêté `energy-tracker` et que la sauvegarde échoue, il tente de redémarrer le conteneur avant de quitter. L’échec du redémarrage est aussi signalé sur stderr.
+
+Deux options préparent une future mise à jour en une seule fenêtre d’arrêt (construire la nouvelle image pendant que l’application tourne, puis sauvegarder avec l’image encore en service). Le script de déploiement n’est pas fourni.
+
+```bash
+sh scripts/docker-backup.sh --no-restart --image <référence>
+```
+
+- `--image <référence>` utilise exactement cette image pour le conteneur de sauvegarde. Sans cette option, le script garde l’image actuelle du service. Une référence absente, une option invalide ou `--image` sans référence affiche l’aide et quitte avec un code non nul, sans arrêter le service.
+- `--no-restart` laisse `energy-tracker` arrêté, y compris si la sauvegarde échoue. Le code 0 n’est retourné que si le fichier final existe et n’est pas vide. La dernière ligne de la sortie standard est alors exactement `backups/energy-tracker-YYYYMMDD-HHMMSS.sqlite`.
 
 Restauration (fichier daté existant) :
 
