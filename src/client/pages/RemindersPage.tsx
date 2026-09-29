@@ -20,6 +20,8 @@ export function RemindersPage() {
   const [settings, setSettings] = useState<ReminderSettings | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [timeHhmm, setTimeHhmm] = useState('20:00');
+  const [lowEnergyEnabled, setLowEnergyEnabled] = useState(false);
+  const [absenceEnabled, setAbsenceEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
@@ -42,6 +44,8 @@ export function RemindersPage() {
         setSettings(data);
         setEnabled(data.enabled);
         setTimeHhmm(data.timeHhmm);
+        setLowEnergyEnabled(data.lowEnergyEnabled);
+        setAbsenceEnabled(data.absenceEnabled);
         setError(null);
       } catch (err) {
         if (cancelled) {
@@ -73,15 +77,18 @@ export function RemindersPage() {
     setMessage(null);
     setError(null);
     try {
-      const data = await saveReminders({ enabled, timeHhmm });
+      const data = await saveReminders({
+        enabled,
+        timeHhmm,
+        lowEnergyEnabled,
+        absenceEnabled,
+      });
       setSettings(data);
       setEnabled(data.enabled);
       setTimeHhmm(data.timeHhmm);
-      setMessage(
-        data.enabled
-          ? `Rappel activé à ${data.timeHhmm} (Europe/Paris).`
-          : 'Rappel désactivé.',
-      );
+      setLowEnergyEnabled(data.lowEnergyEnabled);
+      setAbsenceEnabled(data.absenceEnabled);
+      setMessage('Préférences de rappel enregistrées (Europe/Paris).');
     } catch (err) {
       setError(
         err instanceof ReminderRequestError
@@ -153,8 +160,9 @@ export function RemindersPage() {
     <section className="page">
       <h1>Rappels</h1>
       <p className="lede">
-        Un seul rappel quotidien, à l’heure que tu choisis (Europe/Paris). Aucun
-        rappel intelligent.
+        Rappels à heure fixe et rappels intelligents (Europe/Paris). Un
+        abonnement push sur un appareil est requis pour recevoir les
+        notifications.
       </p>
 
       <form className="reminders-form" onSubmit={handleSave}>
@@ -182,6 +190,28 @@ export function RemindersPage() {
             setTimeHhmm(event.target.value);
           }}
         />
+
+        <label className="reminders-toggle">
+          <input
+            type="checkbox"
+            checked={lowEnergyEnabled}
+            onChange={(event) => {
+              setLowEnergyEnabled(event.target.checked);
+            }}
+          />
+          <span>Relance après une note basse</span>
+        </label>
+
+        <label className="reminders-toggle">
+          <input
+            type="checkbox"
+            checked={absenceEnabled}
+            onChange={(event) => {
+              setAbsenceEnabled(event.target.checked);
+            }}
+          />
+          <span>Rappel si aucune saisie à 19 h</span>
+        </label>
 
         <button type="submit" className="primary-button" disabled={saving}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}

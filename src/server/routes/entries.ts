@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { requireUserId } from '../auth/hooks.js';
 import type { SqliteDatabase } from '../db.js';
+import { createReminderStore } from '../reminders/store.js';
 import type { EnergyEntry } from '../types.js';
 import { HttpError } from '../types.js';
 import {
@@ -18,6 +19,8 @@ export function registerEntryRoutes(
   app: FastifyInstance,
   db: SqliteDatabase,
 ): void {
+  const reminderStore = createReminderStore(db);
+
   const insert = db.prepare(`
     INSERT INTO energy_entries (
       id, user_id, timestamp, energy, fatigue, desire, context, activity,
@@ -110,6 +113,13 @@ export function registerEntryRoutes(
       throw error;
     }
 
+    reminderStore.syncLowEnergyAfterMutation(userId, {
+      id: entry.id,
+      timestamp: entry.timestamp,
+      energy: entry.energy,
+      created_at: entry.created_at,
+    });
+
     return reply.status(201).send({ data: entry });
   });
 
@@ -195,6 +205,13 @@ export function registerEntryRoutes(
       throw error;
     }
 
+    reminderStore.syncLowEnergyAfterMutation(userId, {
+      id: entry.id,
+      timestamp: entry.timestamp,
+      energy: entry.energy,
+      created_at: entry.created_at,
+    });
+
     return reply.send({ data: entry });
   });
 
@@ -207,6 +224,7 @@ export function registerEntryRoutes(
     if (result.changes !== 1) {
       throw new HttpError(404, 'not_found', 'Entrée introuvable.');
     }
+    reminderStore.syncLowEnergyAfterMutation(userId, null);
     return reply.status(204).send();
   });
 }

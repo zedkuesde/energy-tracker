@@ -12,6 +12,8 @@ import {
 type PreferenceBody = {
   enabled?: unknown;
   timeHhmm?: unknown;
+  lowEnergyEnabled?: unknown;
+  absenceEnabled?: unknown;
 };
 
 type SubscribeBody = {
@@ -25,6 +27,8 @@ type SubscribeBody = {
 function parsePreferenceBody(body: unknown): {
   enabled: boolean;
   time_hhmm: string;
+  low_energy_enabled: boolean;
+  absence_enabled: boolean;
 } {
   if (!body || typeof body !== 'object') {
     throw new HttpError(400, 'validation_error', 'Corps de requête invalide.');
@@ -44,6 +48,20 @@ function parsePreferenceBody(body: unknown): {
       'Le champ timeHhmm doit être une heure HH:MM.',
     );
   }
+  if (typeof payload.lowEnergyEnabled !== 'boolean') {
+    throw new HttpError(
+      400,
+      'validation_error',
+      'Le champ lowEnergyEnabled doit être un booléen.',
+    );
+  }
+  if (typeof payload.absenceEnabled !== 'boolean') {
+    throw new HttpError(
+      400,
+      'validation_error',
+      'Le champ absenceEnabled doit être un booléen.',
+    );
+  }
   const timeHhmm = payload.timeHhmm.trim();
   if (!isValidReminderTime(timeHhmm)) {
     throw new HttpError(
@@ -52,7 +70,12 @@ function parsePreferenceBody(body: unknown): {
       'L’heure doit être au format HH:MM (00:00–23:59), fuseau Europe/Paris.',
     );
   }
-  return { enabled: payload.enabled, time_hhmm: timeHhmm };
+  return {
+    enabled: payload.enabled,
+    time_hhmm: timeHhmm,
+    low_energy_enabled: payload.lowEnergyEnabled,
+    absence_enabled: payload.absenceEnabled,
+  };
 }
 
 function parseSubscribeBody(body: unknown): {
@@ -88,6 +111,25 @@ function parseSubscribeBody(body: unknown): {
   return { endpoint, p256dh, auth };
 }
 
+function preferenceResponse(
+  preference: ReturnType<
+    ReturnType<typeof createReminderStore>['getOrDefaultPreference']
+  >,
+  store: ReturnType<typeof createReminderStore>,
+  vapid: VapidConfig | null,
+) {
+  return {
+    enabled: preference.enabled,
+    timeHhmm: preference.time_hhmm,
+    lowEnergyEnabled: preference.low_energy_enabled,
+    absenceEnabled: preference.absence_enabled,
+    timezone: 'Europe/Paris',
+    subscriptionCount: store.subscriptionCount(preference.user_id),
+    pushConfigured: Boolean(vapid),
+    vapidPublicKey: vapid?.publicKey ?? null,
+  };
+}
+
 export function registerReminderRoutes(
   app: FastifyInstance,
   db: SqliteDatabase,
@@ -103,12 +145,7 @@ export function registerReminderRoutes(
     const preference = store.getOrDefaultPreference(userId);
     return {
       data: {
-        enabled: preference.enabled,
-        timeHhmm: preference.time_hhmm,
-        timezone: 'Europe/Paris',
-        subscriptionCount: store.subscriptionCount(userId),
-        pushConfigured: Boolean(vapid),
-        vapidPublicKey: vapid?.publicKey ?? null,
+        ...preferenceResponse(preference, store, vapid),
         notificationPermissionHint:
           'Les notifications ne sont demandées qu’après une action explicite.',
       },
@@ -120,14 +157,7 @@ export function registerReminderRoutes(
     const input = parsePreferenceBody(request.body);
     const preference = store.savePreference(userId, input);
     return {
-      data: {
-        enabled: preference.enabled,
-        timeHhmm: preference.time_hhmm,
-        timezone: 'Europe/Paris',
-        subscriptionCount: store.subscriptionCount(userId),
-        pushConfigured: Boolean(vapid),
-        vapidPublicKey: vapid?.publicKey ?? null,
-      },
+      data: preferenceResponse(preference, store, vapid),
     };
   });
 

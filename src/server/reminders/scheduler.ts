@@ -1,12 +1,24 @@
 import type { ReminderStore } from './store.js';
-import { sendReminderPush } from './push.js';
+import {
+  payloadForKind,
+  pushOptionsForKind,
+  sendReminderPush,
+  type PushSendOptions,
+  type ReminderPayload,
+} from './push.js';
+
+export type ReminderSendFn = (
+  subscription: Parameters<typeof sendReminderPush>[0],
+  payload?: ReminderPayload,
+  options?: PushSendOptions,
+) => ReturnType<typeof sendReminderPush>;
 
 export type ReminderSchedulerOptions = {
   store: ReminderStore;
   intervalMs?: number;
   enabled?: boolean;
   now?: () => Date;
-  send?: typeof sendReminderPush;
+  send?: ReminderSendFn;
   onError?: (error: unknown) => void;
 };
 
@@ -45,11 +57,14 @@ export function createReminderScheduler(
     let removedSubscriptions = 0;
 
     try {
-      const due = options.store.listDueReminders(now());
+      const instant = now();
+      const due = options.store.listDueReminders(instant);
       for (const reminder of due) {
         let delivered = false;
+        const payload = payloadForKind(reminder.kind);
+        const pushOptions = pushOptionsForKind(reminder.kind);
         for (const subscription of reminder.subscriptions) {
-          const result = await send(subscription);
+          const result = await send(subscription, payload, pushOptions);
           if (result.ok) {
             delivered = true;
             continue;
@@ -60,7 +75,15 @@ export function createReminderScheduler(
           }
         }
         if (delivered) {
-          options.store.markReminderSent(reminder.userId, now());
+          const losers = options.store.listCollisionLosers(
+            reminder.userId,
+            reminder,
+            instant,
+          );
+          options.store.markKindSent(reminder.userId, reminder.kind, instant);
+          for (const loser of losers) {
+            options.store.markKindSent(reminder.userId, loser, instant);
+          }
           sentUsers += 1;
         }
       }

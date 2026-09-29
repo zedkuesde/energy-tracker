@@ -62,15 +62,17 @@ Sans `--confirm`, ou hors Codespaces, ou si le chemin n’est pas le fichier can
 5. Panneau **Ports** → port **3000** (visibilité **private**) → **Open in Browser**.
 6. Se connecter avec `demo@energy-tracker.local` et le mot de passe du secret.
 7. Tester saisie, historique, graphes.
-8. Ouvrir **Rappels** (lien dans l’en-tête) : régler une heure Europe/Paris, activer/désactiver.
+8. Ouvrir **Rappels** (lien dans l’en-tête) : rappel fixe, toggles « Relance après une note basse » et « Rappel si aucune saisie à 19 h ».
 9. Si les secrets VAPID sont configurés : installer la PWA sur l’écran d’accueil iPhone, puis appuyer sur **Activer les notifications sur cet appareil** (permission explicite).
 10. Menu du Codespace → **Stop codespace**.
 
 ### Ce qui est testable dans un Codespace privé sur iPhone
 
-- UI Rappels, enregistrement des préférences, refus de permission sans casser l’app ;
+- UI Rappels (fixe + intelligents), enregistrement des préférences, refus de permission sans casser l’app ;
 - installation PWA depuis l’URL HTTPS Codespaces (port 3000 private) ;
-- abonnement push si VAPID est configuré (compteur d’abonnements).
+- abonnement push si VAPID est configuré (compteur d’abonnements) ;
+- relance basse énergie : créer une note &lt; 5 dont le `fire_at` tombe bientôt, attendre la fenêtre réelle ;
+- absence / collision à 19:00 : **attendre le créneau réel Europe/Paris 19:00–19:15** (pas d’horloge fictive en preview).
 
 ### À vérifier séparément (réception app fermée)
 
